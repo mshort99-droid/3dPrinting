@@ -92,8 +92,13 @@ Assistant), with a web interface and Alexa control added later.
      machine.
 
    **Web interface done (2026-09-27), Bar zone only:** mobile-first dark UI,
-   served by the same `wledmaster` service — **http://lights-hub:8080** (or
-   `http://192.168.4.40:8080`) on the LAN.
+   served by the same `wledmaster` service. **Use the IP, not the
+   hostname: http://192.168.4.40:8080.** `http://lights-hub:8080` doesn't
+   resolve from at least one phone tested — mDNS/`.local` hostname
+   resolution isn't reliable on this network (same issue found earlier
+   when `raspberrypi.local` wouldn't resolve either). Worth keeping in
+   mind for later mDNS-dependent work (Alexa discovery, panels finding the
+   master) — see Open Questions.
    - Backend: `aiohttp` server in [`wledmaster/web.py`](master/wledmaster/web.py)
      bolted onto the existing asyncio event loop alongside the control
      socket. REST API: `GET /api/state` (friendly per-segment status, not
