@@ -103,6 +103,14 @@ Assistant), with a web interface and Alexa control added later.
 Enclosures (CadQuery → STEP + STL): 7" panel wall frame; knob wall plate and/or
 bar-top stand. The Pi needs no enclosure.
 
+**Stretch goal, later (not scoped yet):** a conversational "bot" exposed
+through Alexa that can create/edit scenes by voice on the fly (e.g. "make
+something moody with blue and red"), not just trigger existing ones. Bigger
+lift than step 4's basic voice control — needs a custom Alexa Skill wired to
+an LLM, an AWS/Alexa developer account, and a publicly reachable endpoint,
+which cuts against the "fully standalone, no cloud dependency" goal. Revisit
+once the core system (steps 1–5) is solid.
+
 ## Raspberry Pi prep checklist
 
 - [x] USB SSD (120–250 GB) to boot from — used a 128GB USB thumb drive instead
