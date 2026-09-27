@@ -77,21 +77,53 @@ bar-top stand. The Pi needs no enclosure.
 
 ## Raspberry Pi prep checklist
 
-- [ ] (Optional) Image the old SD card if anything from the old install is wanted.
-- [ ] USB SSD (120–250 GB) to boot from, or at least a new high-endurance SD card.
-- [ ] Flash **Raspberry Pi OS Lite (64-bit)** with Raspberry Pi Imager; set
-      hostname (e.g. `lights-hub`), enable SSH, create login.
-- [ ] Router: DHCP reservations (fixed IPs) for the Pi and every WLED controller.
-- [ ] Clean dust from the fan.
-- [ ] Run health checks and record results:
-      ```
-      cat /proc/device-tree/model; echo
-      free -h
-      vcgencmd get_throttled     # want throttled=0x0
-      vcgencmd measure_temp
-      cat /etc/os-release | head -3
-      df -h /
-      ```
+- [x] USB SSD (120–250 GB) to boot from — used a 128GB USB thumb drive instead
+      (fine to start; see note below on swapping to a real SSD later).
+- [x] Flash **Raspberry Pi OS Lite (64-bit)** — done via `dd` from the Mac
+      (no card reader; Pi Imager wasn't usable, so image was decompressed and
+      written manually, plus `ssh` + `userconf.txt` added to the boot
+      partition for headless first boot). Login created: username `lights`.
+      Hostname **not yet** changed from the default `raspberrypi` — still on
+      the checklist below.
+- [ ] Rename host from default `raspberrypi` to something like `lights-hub`
+      (`sudo raspi-config` or `sudo hostnamectl set-hostname lights-hub`, plus
+      update `/etc/hosts`).
+- [ ] Rotate the `lights` account password — it was typed in plaintext in a
+      chat session while setting this up, so treat it as no longer secret.
+- [ ] Router: DHCP reservation (fixed IP) for the Pi (currently DHCP-assigned
+      **192.168.4.40**) and every WLED controller.
+- [ ] Clean dust from the fan (moot for now — running off the old SD card's
+      fan/heatsink setup, but still worth doing before final mounting).
+- [x] Run health checks — see results below.
+
+### 2026-09-27: wiped and reinstalled; health checks (on fresh OS)
+
+Decided to skip inspecting the old Home Assistant install (see blocker
+below) and go straight to a wipe, since the target design was always
+standalone. Old SD card removed; Pi now boots from a 128GB USB thumb drive
+plugged into a **blue (USB 3.0)** port.
+
+```
+Model:      Raspberry Pi 4 Model B Rev 1.5
+RAM:        3.7 GiB total, 3.4 GiB free
+Throttled:  0x0  (no under-voltage/throttling ever detected — good)
+Temp:       38.4°C idle — good
+OS:         Debian GNU/Linux 13 "trixie" (Raspberry Pi OS Lite, 64-bit,
+            2026-09-15 build)
+Disk:       114 GB root on the USB drive, 2.8 GB used, 106 GB free
+Hostname:   raspberrypi (default — not yet renamed)
+IP:         192.168.4.40 (DHCP, not yet reserved)
+```
+
+**Recommendation: hardware is healthy, proceed with build.** No
+throttling history, plenty of RAM and disk for a lightweight Python
+service, temp is fine. Remaining prep-checklist items (hostname, DHCP
+reservation, password rotation) are small and non-blocking.
+
+Note: a 128GB USB **thumb** drive is what was on hand, not a proper USB
+SSD. Fine for now; thumb drives wear out faster under constant read/write
+than an SSD, so consider swapping to a real USB SSD before this becomes a
+24/7 production box.
 
 ### 2026-09-26: network discovery attempt — blocked, needs a decision
 
