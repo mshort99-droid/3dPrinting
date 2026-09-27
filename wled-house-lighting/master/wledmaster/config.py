@@ -32,6 +32,22 @@ class SceneAction:
                 "a scene action needs 'preset', or 'segment' with at least 'on'/'col'/'fx'/'bri'"
             )
 
+    def to_dict(self) -> dict:
+        d: dict = {"controller": self.controller}
+        if self.segment is not None:
+            d["segment"] = self.segment
+        if self.preset is not None:
+            d["preset"] = self.preset
+        if self.on is not None:
+            d["power"] = self.on
+        if self.col is not None:
+            d["col"] = self.col
+        if self.fx is not None:
+            d["fx"] = self.fx
+        if self.bri is not None:
+            d["bri"] = self.bri
+        return d
+
 
 @dataclass
 class Zone:
@@ -48,7 +64,7 @@ class Config:
         return [c for zone in self.zones.values() for c in zone.controllers.values()]
 
 
-def _parse_action(raw: dict) -> SceneAction:
+def parse_action(raw: dict) -> SceneAction:
     # YAML 1.1 parses bare `on`/`off` as booleans, so a literal "on: false" key
     # becomes {True: False}, not {"on": False}. Use "power" in the config file
     # instead and translate it to the SceneAction.on field here.
@@ -63,6 +79,18 @@ def _parse_action(raw: dict) -> SceneAction:
     )
 
 
+def validate_action(zone: Zone, action: SceneAction) -> None:
+    controller = zone.controllers.get(action.controller)
+    if controller is None:
+        raise ValueError(
+            f"zone '{zone.name}' has no controller '{action.controller}'"
+        )
+    if action.segment is not None and action.segment not in controller.segments:
+        raise ValueError(
+            f"controller '{action.controller}' has no segment '{action.segment}'"
+        )
+
+
 def load_config(path: Path) -> Config:
     raw = yaml.safe_load(path.read_text())
     zones: dict[str, Zone] = {}
@@ -75,24 +103,18 @@ def load_config(path: Path) -> Config:
             )
             for ctrl_name, ctrl_raw in (zone_raw.get("controllers") or {}).items()
         }
+        zone = Zone(name=zone_name, controllers=controllers, scenes={})
 
-        scenes: dict[str, list[SceneAction]] = {}
         for scene_name, actions_raw in (zone_raw.get("scenes") or {}).items():
-            actions = [_parse_action(a) for a in actions_raw]
+            actions = [parse_action(a) for a in actions_raw]
             for action in actions:
-                controller = controllers.get(action.controller)
-                if controller is None:
+                try:
+                    validate_action(zone, action)
+                except ValueError as exc:
                     raise ValueError(
-                        f"zone '{zone_name}' scene '{scene_name}' references "
-                        f"unknown controller '{action.controller}'"
-                    )
-                if action.segment is not None and action.segment not in controller.segments:
-                    raise ValueError(
-                        f"zone '{zone_name}' scene '{scene_name}' references "
-                        f"unknown segment '{action.segment}' on controller "
-                        f"'{action.controller}'"
-                    )
-            scenes[scene_name] = actions
+                        f"zone '{zone_name}' scene '{scene_name}': {exc}"
+                    ) from exc
+            zone.scenes[scene_name] = actions
 
-        zones[zone_name] = Zone(name=zone_name, controllers=controllers, scenes=scenes)
+        zones[zone_name] = zone
     return Config(zones=zones)

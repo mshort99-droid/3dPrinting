@@ -86,15 +86,48 @@ Assistant), with a web interface and Alexa control added later.
    - Current `house.yaml` scenes (`Just Lit`, `Christmas`, `The Blues`) are
      placeholders using whatever presets already exist on the controllers
      today — not the final Open/Happy Hour/Game Night/Closed scene design.
-   - Not yet built: scheduling, the house/zone scene config model beyond
-     this flat per-zone mapping, the web interface, more zones, and any
-     controller-config-writing (presets/segments) — the master currently
-     only sends runtime commands (preset select, on/off) over each
-     controller's existing WebSocket.
    - Deploy note: copying files to the Pi over `scp`/`rsync`/`ssh` needed a
      `~/.claude/settings.json` permission rule added by hand (Claude can't
      grant itself new permissions) — see that file if setting up on another
      machine.
+
+   **Web interface done (2026-09-27), Bar zone only:** mobile-first dark UI,
+   served by the same `wledmaster` service — **http://lights-hub:8080** (or
+   `http://192.168.4.40:8080`) on the LAN.
+   - Backend: `aiohttp` server in [`wledmaster/web.py`](master/wledmaster/web.py)
+     bolted onto the existing asyncio event loop alongside the control
+     socket. REST API: `GET /api/state` (friendly per-segment status, not
+     the raw WLED dump `status()`/the CLI use), `POST .../preview` (send a
+     one-off action live, not saved — used for both the dashboard's
+     quick-toggle chips and the scene editor's live preview), `POST
+     .../scenes/<name>/apply`, and scene CRUD (`POST` create/update, `POST
+     .../rename`, `DELETE`).
+   - Scene edits persist back to `house.yaml` using `ruamel.yaml`
+     ([`persist.py`](master/wledmaster/persist.py)) instead of plain
+     PyYAML, specifically so the file's explanatory comments survive edits
+     made through the UI. After any scene CRUD, the `Manager` reloads
+     config from disk in-memory — no service restart needed (adding a new
+     *controller*, as opposed to a scene, still needs one).
+   - Frontend: vanilla HTML/CSS/JS in [`static/`](master/static/), no
+     build step, no external font/CDN dependencies (kept in line with the
+     "standalone" goal — the Pi is the only server involved). Dashboard
+     tab (scene buttons with swatches derived from their actual colors,
+     quick per-segment on/off toggles) plus a Scenes tab for full CRUD,
+     including a live-preview-as-you-edit scene builder.
+   - Two real bugs caught by testing directly in the browser pane before
+     deploying: (1) `<button>` elements don't inherit text color the way
+     `<div>`s do, so scene card text was rendering black-on-dark and
+     unreadable until `color` was set explicitly; (2) the first design for
+     "include this segment in the scene" used a second on/off switch,
+     visually indistinguishable from the segment's own power switch right
+     below it — replaced with a distinct "Add to scene" / "✓ In scene"
+     chip. Also swapped the delete-scene confirmation from the browser's
+     native `confirm()` (untestable by automation, and a jarring visual
+     mismatch with the custom UI) for an in-app modal matching the theme.
+   - Not yet built: scheduling, the fuller house/zone scene config model,
+     more zones, and any controller-*config*-writing (presets/segments/LED
+     layout) — the master only sends runtime commands (preset select,
+     segment on/off/color/fx/brightness), same as before.
 2. **7" overview panel** firmware (ESP32-S3, LVGL 9, PlatformIO).
 3. **Knob zone panels**, starting with the bar.
 4. **Alexa** (Hue/WeMo-style device emulation on the Pi; test Echo discovery early).
