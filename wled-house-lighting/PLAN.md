@@ -216,8 +216,9 @@ now corrected to 788 and the device rebooted to apply it.
 | `shelf23` | 378–579 | 3rd from top |
 | `shelf24` | 580–787 | bottom shelf |
 
-**Under Bar** (192.168.4.42, 60 LEDs) — single strip, not segmented (no
-multiple physical shelves to split).
+**Under Bar** (192.168.4.42, 60 LEDs) — split into 4 even 15-pixel segments
+(no physical shelf boundaries to find, just an even split): `underbar1`
+(0–14), `underbar2` (15–29), `underbar3` (30–44), `underbar4` (45–59).
 
 Not yet done: teaching `wledmaster`/`house.yaml` about these per-shelf
 segments (currently the config only knows about whole-controller presets,
