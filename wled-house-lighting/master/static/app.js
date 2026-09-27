@@ -6,6 +6,8 @@
   let pollTimer = null;
   let editorDraft = null; // { origName, name, controllers: { [cname]: { mode: 'segments'|'preset', preset, segments: { [sname]: {included, power, col} } } } }
   let previewDebounce = null;
+  let lastStateJSON = null;
+  let stateFetchInFlight = false;
 
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -44,9 +46,17 @@
     return body;
   }
 
-  async function loadState() {
+  async function loadState(force) {
+    // Skip overlapping polls (e.g. a slow request from the Pi to WLED
+    // devices taking longer than the poll interval) - piling up concurrent
+    // fetches only makes the re-render-mid-tap problem below worse.
+    if (stateFetchInFlight) return;
+    stateFetchInFlight = true;
     try {
       const data = await api("/api/state");
+      const json = JSON.stringify(data);
+      const changed = json !== lastStateJSON;
+      lastStateJSON = json;
       state = data;
       if (!currentZone || !state[currentZone]) {
         currentZone = Object.keys(state)[0] || null;
@@ -60,11 +70,19 @@
       const dot = $("#conn-dot");
       dot.classList.toggle("ok", allConnected);
       dot.classList.toggle("bad", !anyConnected);
-      renderDashboard();
-      if (!$("#view-editor").classList.contains("hidden")) renderEditorList();
+      // Only rebuild the DOM when something actually changed (or the caller
+      // needs a guaranteed fresh render, e.g. after switching tabs) - a
+      // periodic full rebuild would otherwise risk replacing a button out
+      // from under an in-progress tap, silently swallowing it.
+      if (changed || force) {
+        renderDashboard();
+        if (!$("#view-editor").classList.contains("hidden")) renderEditorList();
+      }
     } catch (e) {
       $("#conn-dot").classList.add("bad");
       $("#conn-dot").classList.remove("ok");
+    } finally {
+      stateFetchInFlight = false;
     }
   }
 
