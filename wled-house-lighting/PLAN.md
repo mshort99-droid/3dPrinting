@@ -93,6 +93,41 @@ bar-top stand. The Pi needs no enclosure.
       df -h /
       ```
 
+### 2026-09-26: network discovery attempt — blocked, needs a decision
+
+- The Pi was only connected to this Mac's USB port for **power**; a Pi 4's
+  USB-C port isn't a data link, so it wasn't on the LAN until Ethernet was
+  connected.
+- After connecting Ethernet, found it on the LAN: **192.168.4.40**, MAC
+  `e4:5f:01:ab:a4:4b` (Raspberry Pi Foundation OUI).
+- It is **still running a live, configured Home Assistant install**
+  (confirmed via the web UI on port 8123 — past onboarding, needs login).
+  Home network is subnetted 192.168.4.0–192.168.7.255 (netmask
+  255.255.252.0); the Pi and this Mac are both on the 192.168.4.x segment,
+  so no VLAN issue for mDNS.
+- **Can't get a shell:** port 22 (SSH) and port 22222 (Home Assistant OS's
+  usual host SSH) are both closed. No known/remembered HA login, so can't
+  log in to enable the Terminal & SSH add-on either. Did not attempt to
+  guess the HA password (HA bans an IP after 5 failed logins, and
+  credential-guessing isn't something to do even on your own gear).
+  No USB microSD card reader on hand, so can't pull the card and inspect/
+  flash it directly either.
+- **Result:** couldn't run the OS-level health checks (model confirmed
+  4B/2021 already; RAM, throttling, temp, OS version, disk usage still
+  unknown) — blocked on physical access, not network access.
+- **Recommendation:** buy a cheap USB microSD card reader (~$8–10). It
+  unblocks both this health check (read the card directly, no login
+  needed) and the eventual reinstall step, which needs one anyway to flash
+  Raspberry Pi OS Lite with Raspberry Pi Imager. Given it's a live
+  configured HA install (not a blank OS) and the target design is
+  standalone anyway, a wipe is very likely the right call regardless of
+  what the health checks show — the checks are mainly to confirm the
+  hardware itself (RAM size, no under-voltage/throttling history, temp)
+  is fine before building on it.
+- Alternative if a reader isn't wanted: temporarily attach a monitor +
+  keyboard directly to the Pi for a local console (no network/login
+  needed) to run the same health-check commands.
+
 ## Open questions
 
 - Which rooms/zones, and how many WLED controllers in each?
