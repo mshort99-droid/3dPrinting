@@ -1,6 +1,6 @@
 # Whole-House WLED Control System — Plan
 
-Status: **planning** (nothing built yet). Last updated 2026-09-26.
+Status: **building** — master skeleton running on the Pi. Last updated 2026-09-27.
 
 ## Goal
 
@@ -67,6 +67,34 @@ Assistant), with a web interface and Alexa control added later.
 
 1. **Pi master + web interface** (can be built and tested in a cloud session; Python
    packages are reachable there).
+
+   **Minimal skeleton done (2026-09-27), Bar zone only:**
+   - Code lives in [`master/`](master/) — `wledmaster` Python package
+     (config loader, one persistent WebSocket client per WLED controller,
+     scene dispatch, a Unix-socket control interface, plus `wledmaster.ctl`
+     as a CLI for it) and `config/house.yaml` for the zone/controller/scene
+     config.
+   - Deployed and running as a systemd service on `lights-hub`
+     (`/etc/systemd/system/wled-master.service`, `enable --now`, restarts on
+     failure). Verified live: connects to all 3 Bar controllers, `status`
+     and `apply-scene bar "<name>"` both work end-to-end through the
+     running service.
+   - Real bug caught and fixed during testing: WLED sends a bare
+     `{"success": true}` ack after every command, which was overwriting the
+     richer tracked device state — client now only updates state from
+     messages that actually carry a `"state"` key.
+   - Current `house.yaml` scenes (`Just Lit`, `Christmas`, `The Blues`) are
+     placeholders using whatever presets already exist on the controllers
+     today — not the final Open/Happy Hour/Game Night/Closed scene design.
+   - Not yet built: scheduling, the house/zone scene config model beyond
+     this flat per-zone mapping, the web interface, more zones, and any
+     controller-config-writing (presets/segments) — the master currently
+     only sends runtime commands (preset select, on/off) over each
+     controller's existing WebSocket.
+   - Deploy note: copying files to the Pi over `scp`/`rsync`/`ssh` needed a
+     `~/.claude/settings.json` permission rule added by hand (Claude can't
+     grant itself new permissions) — see that file if setting up on another
+     machine.
 2. **7" overview panel** firmware (ESP32-S3, LVGL 9, PlatformIO).
 3. **Knob zone panels**, starting with the bar.
 4. **Alexa** (Hue/WeMo-style device emulation on the Pi; test Echo discovery early).

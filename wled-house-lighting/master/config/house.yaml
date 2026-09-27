@@ -1,0 +1,20 @@
+zones:
+  bar:
+    controllers:
+      under_bar:
+        host: 192.168.4.42
+      bar_shelves:
+        host: 192.168.4.49
+      bar_shelves_2:
+        host: 192.168.6.240
+    scenes:
+      # Scene name -> per-controller preset ID. A controller left out of a
+      # scene is simply not sent a command for it (e.g. bar_shelves_2 has no
+      # presets configured yet).
+      Just Lit:
+        under_bar: 2
+        bar_shelves: 3
+      Christmas:
+        bar_shelves: 1
+      The Blues:
+        bar_shelves: 2

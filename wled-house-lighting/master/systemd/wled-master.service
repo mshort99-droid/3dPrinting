@@ -1,0 +1,16 @@
+[Unit]
+Description=WLED house lighting master
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lights
+WorkingDirectory=/home/lights/wled-house-lighting/master
+ExecStart=/home/lights/wled-house-lighting/master/.venv/bin/python -m wledmaster
+RuntimeDirectory=wled-master
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
