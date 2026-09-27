@@ -3,18 +3,106 @@ zones:
     controllers:
       under_bar:
         host: 192.168.4.42
+        segments:
+          underbar1: 0
+          underbar2: 1
+          underbar3: 2
+          underbar4: 3
       bar_shelves:
         host: 192.168.4.49
+        # segment N = position N counting from the bottom shelf up
+        segments:
+          shelf11: 0
+          shelf12: 1
+          shelf13: 2
+          shelf14: 3
       bar_shelves_2:
         host: 192.168.6.240
+        # segment N = position N counting from the bottom shelf up
+        segments:
+          shelf21: 0
+          shelf22: 1
+          shelf23: 2
+          shelf24: 3
+
+    # Each scene is a list of actions. An action targets a controller and
+    # either:
+    #   - preset: <id>            applies a whole-controller WLED preset, or
+    #   - segment: <name>         plus power/col/fx/bri to drive one segment
+    #                              directly (no preset needed on the device).
+    #                              NOTE: use "power", not "on" - YAML 1.1
+    #                              parses bare on/off as booleans, which
+    #                              silently corrupts a literal "on:" key.
+    # Multiple actions for the same controller are combined into one command.
     scenes:
-      # Scene name -> per-controller preset ID. A controller left out of a
-      # scene is simply not sent a command for it (e.g. bar_shelves_2 has no
-      # presets configured yet).
       Just Lit:
-        under_bar: 2
-        bar_shelves: 3
+        - controller: under_bar
+          preset: 2
+        - controller: bar_shelves
+          preset: 3
+
       Christmas:
-        bar_shelves: 1
+        - controller: bar_shelves
+          preset: 1
+
       The Blues:
-        bar_shelves: 2
+        - controller: bar_shelves
+          preset: 2
+
+      Warm White (all shelves):
+        - controller: under_bar
+          segment: underbar1
+          power: true
+          col: [255, 180, 80]
+        - controller: under_bar
+          segment: underbar2
+          power: true
+          col: [255, 180, 80]
+        - controller: under_bar
+          segment: underbar3
+          power: true
+          col: [255, 180, 80]
+        - controller: under_bar
+          segment: underbar4
+          power: true
+          col: [255, 180, 80]
+        - controller: bar_shelves
+          segment: shelf11
+          power: true
+          col: [255, 180, 80]
+        - controller: bar_shelves
+          segment: shelf12
+          power: true
+          col: [255, 180, 80]
+        - controller: bar_shelves
+          segment: shelf13
+          power: true
+          col: [255, 180, 80]
+        - controller: bar_shelves
+          segment: shelf14
+          power: true
+          col: [255, 180, 80]
+        - controller: bar_shelves_2
+          segment: shelf21
+          power: true
+          col: [255, 180, 80]
+        - controller: bar_shelves_2
+          segment: shelf22
+          power: true
+          col: [255, 180, 80]
+        - controller: bar_shelves_2
+          segment: shelf23
+          power: true
+          col: [255, 180, 80]
+        - controller: bar_shelves_2
+          segment: shelf24
+          power: true
+          col: [255, 180, 80]
+
+      Top Shelves Off:
+        - controller: bar_shelves
+          segment: shelf14
+          power: false
+        - controller: bar_shelves_2
+          segment: shelf24
+          power: false

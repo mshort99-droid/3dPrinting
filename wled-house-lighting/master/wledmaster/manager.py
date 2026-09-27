@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 
-from .config import Config
+from .config import Config, SceneAction, Zone
 from .wled_client import WledClient
 
 logger = logging.getLogger(__name__)
@@ -35,16 +35,46 @@ class Manager:
         zone = self.config.zones.get(zone_name)
         if zone is None:
             return {"ok": False, "error": f"unknown zone '{zone_name}'"}
-        preset_map = zone.scenes.get(scene_name)
-        if preset_map is None:
+        actions = zone.scenes.get(scene_name)
+        if actions is None:
             return {"ok": False, "error": f"unknown scene '{scene_name}' in zone '{zone_name}'"}
 
+        # Group actions by controller so multiple segment actions for the same
+        # controller go out as one WLED command instead of racing each other.
+        by_controller: dict[str, list[SceneAction]] = {}
+        for action in actions:
+            by_controller.setdefault(action.controller, []).append(action)
+
         results = {}
-        for controller_name, preset_id in preset_map.items():
+        for controller_name, controller_actions in by_controller.items():
+            command = self._build_command(zone, controller_actions)
             client = self.clients[controller_name]
-            sent = await client.send({"ps": preset_id})
+            sent = await client.send(command)
             results[controller_name] = "sent" if sent else "not connected"
         return {"ok": True, "results": results}
+
+    def _build_command(self, zone: Zone, actions: list[SceneAction]) -> dict:
+        """Combine same-controller scene actions into one WLED JSON command."""
+        command: dict = {}
+        segments = []
+        for action in actions:
+            if action.preset is not None:
+                command["ps"] = action.preset
+                continue
+            controller = zone.controllers[action.controller]
+            seg: dict = {"id": controller.segments[action.segment]}
+            if action.on is not None:
+                seg["on"] = action.on
+            if action.col is not None:
+                seg["col"] = [action.col]
+            if action.fx is not None:
+                seg["fx"] = action.fx
+            if action.bri is not None:
+                seg["bri"] = action.bri
+            segments.append(seg)
+        if segments:
+            command["seg"] = segments
+        return command
 
     def status(self) -> dict:
         return {

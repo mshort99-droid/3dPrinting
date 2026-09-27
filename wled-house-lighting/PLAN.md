@@ -195,14 +195,20 @@ Found by lighting ranges of pixels live and having Michael confirm what lit up
 on the physical shelves (2026-09-27). Segment names/IDs are set directly on
 each controller in WLED, independent of `wledmaster`.
 
+Naming convention (consistent across both shelf units, fixed 2026-09-27 after
+initially mislabeling top/bottom on the right unit): **`shelf<unit><position>`,
+position 1 = bottom shelf counting up to the top.**
+
 **Bar Shelves** (192.168.4.49, left unit, 977 LEDs) — already correctly
-segmented from before, verified shelf-by-shelf:
+segmented from before; verified shelf-by-shelf, then renamed from its
+original `bottom1`/`shelf11`/`shelf12`/`shelf13` to match the convention
+above:
 | Segment | Pixels | Physical position |
 |---|---|---|
-| `bottom1` | 0–240 | bottom shelf |
-| `shelf11` | 241–483 | 2nd from bottom |
-| `shelf12` | 484–728 | 3rd from bottom |
-| `shelf13` | 729–976 | top shelf |
+| `shelf11` | 0–240 | bottom shelf |
+| `shelf12` | 241–483 | 2nd from bottom |
+| `shelf13` | 484–728 | 3rd from bottom |
+| `shelf14` | 729–976 | top shelf |
 
 **Bar Shelves 2** (192.168.6.240, right unit) — was one undivided segment,
 now split into 4 and named. Also found and fixed a real misconfiguration:
@@ -211,14 +217,34 @@ the controller was set to 800 LEDs but the physical strip is only **788**
 now corrected to 788 and the device rebooted to apply it.
 | Segment | Pixels | Physical position |
 |---|---|---|
-| `shelf21` | 0–194 | top shelf |
-| `shelf22` | 195–377 | 2nd from top |
-| `shelf23` | 378–579 | 3rd from top |
-| `shelf24` | 580–787 | bottom shelf |
+| `shelf21` | 0–194 | bottom shelf |
+| `shelf22` | 195–377 | 2nd from bottom |
+| `shelf23` | 378–579 | 3rd from bottom |
+| `shelf24` | 580–787 | top shelf |
 
 **Under Bar** (192.168.4.42, 60 LEDs) — split into 4 even 15-pixel segments
 (no physical shelf boundaries to find, just an even split): `underbar1`
 (0–14), `underbar2` (15–29), `underbar3` (30–44), `underbar4` (45–59).
+
+### `wledmaster` now supports segment-level scenes
+
+Config (`house.yaml`) and code (`config.py`, `manager.py`) extended so a
+scene's actions can target either a whole-controller preset (`preset: <id>`,
+as before) or one named segment directly (`segment: <name>` plus any of
+`power`/`col`/`fx`/`bri`) — no WLED preset needs to exist on the device for
+segment-level scenes. Each controller now also declares its `segments: {name:
+id}` map in the config. Deployed and verified live through the running
+systemd service (`Warm White (all shelves)` and `Top Shelves Off` scenes,
+12 and 2 actions respectively).
+
+**Bug caught during this: never use a bare YAML key named `on`.** YAML 1.1
+(what PyYAML's `safe_load` uses) treats the bare words `on`/`off`/`yes`/`no`
+as booleans, so a literal `on: false` in the config silently parses as
+`{True: False}` — not `{"on": False}` — and the real key is lost. First
+symptom was a "turn this segment off" scene action doing nothing. Fixed by
+using `power:` as the YAML-facing key name instead (translated to the
+`SceneAction.on` field internally, which is safe since Python has no such
+gotcha) — `config.py` has a comment explaining why.
 
 Not yet done: teaching `wledmaster`/`house.yaml` about these per-shelf
 segments (currently the config only knows about whole-controller presets,
