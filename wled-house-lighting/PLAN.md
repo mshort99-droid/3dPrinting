@@ -189,6 +189,41 @@ than an SSD, so consider swapping to a real USB SSD before this becomes a
   keyboard directly to the Pi for a local console (no network/login
   needed) to run the same health-check commands.
 
+## Bar zone — WLED controller segment maps
+
+Found by lighting ranges of pixels live and having Michael confirm what lit up
+on the physical shelves (2026-09-27). Segment names/IDs are set directly on
+each controller in WLED, independent of `wledmaster`.
+
+**Bar Shelves** (192.168.4.49, left unit, 977 LEDs) — already correctly
+segmented from before, verified shelf-by-shelf:
+| Segment | Pixels | Physical position |
+|---|---|---|
+| `bottom1` | 0–240 | bottom shelf |
+| `shelf11` | 241–483 | 2nd from bottom |
+| `shelf12` | 484–728 | 3rd from bottom |
+| `shelf13` | 729–976 | top shelf |
+
+**Bar Shelves 2** (192.168.6.240, right unit) — was one undivided segment,
+now split into 4 and named. Also found and fixed a real misconfiguration:
+the controller was set to 800 LEDs but the physical strip is only **788**
+(the extra 12 were phantom pixels driving nothing); `hw.led.ins[0].len` is
+now corrected to 788 and the device rebooted to apply it.
+| Segment | Pixels | Physical position |
+|---|---|---|
+| `shelf21` | 0–194 | top shelf |
+| `shelf22` | 195–377 | 2nd from top |
+| `shelf23` | 378–579 | 3rd from top |
+| `shelf24` | 580–787 | bottom shelf |
+
+**Under Bar** (192.168.4.42, 60 LEDs) — single strip, not segmented (no
+multiple physical shelves to split).
+
+Not yet done: teaching `wledmaster`/`house.yaml` about these per-shelf
+segments (currently the config only knows about whole-controller presets,
+not individual WLED segments within a controller) — needed before scenes can
+address a single shelf rather than a whole unit.
+
 ## Open questions
 
 - Which rooms/zones, and how many WLED controllers in each?
