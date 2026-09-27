@@ -111,6 +111,18 @@ an LLM, an AWS/Alexa developer account, and a publicly reachable endpoint,
 which cuts against the "fully standalone, no cloud dependency" goal. Revisit
 once the core system (steps 1–5) is solid.
 
+Two different difficulty levels depending on what "create" means:
+- **Picking/tuning existing WLED effects** (e.g. "warm and slow-pulsing" ->
+  choosing one of WLED's ~220 built-in `fx` values plus speed/intensity/
+  palette) is pretty achievable — mostly a well-informed API call against
+  WLED's existing JSON API, similar to what `wledmaster` already does for
+  presets and segments.
+- **Fully custom, novel animations** (per-pixel patterns generated from
+  scratch, not from WLED's built-in effect list) is a much bigger lift —
+  needs streaming arbitrary frames over WLED's realtime UDP protocol
+  (DDP/Art-Net), which means writing and running actual animation-generation
+  code somewhere, not just calling WLED's API.
+
 ## Raspberry Pi prep checklist
 
 - [x] USB SSD (120–250 GB) to boot from — used a 128GB USB thumb drive instead
