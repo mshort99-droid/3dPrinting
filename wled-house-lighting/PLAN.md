@@ -83,15 +83,16 @@ bar-top stand. The Pi needs no enclosure.
       (no card reader; Pi Imager wasn't usable, so image was decompressed and
       written manually, plus `ssh` + `userconf.txt` added to the boot
       partition for headless first boot). Login created: username `lights`.
-      Hostname **not yet** changed from the default `raspberrypi` — still on
-      the checklist below.
-- [ ] Rename host from default `raspberrypi` to something like `lights-hub`
-      (`sudo raspi-config` or `sudo hostnamectl set-hostname lights-hub`, plus
-      update `/etc/hosts`).
-- [ ] Rotate the `lights` account password — it was typed in plaintext in a
-      chat session while setting this up, so treat it as no longer secret.
-- [ ] Router: DHCP reservation (fixed IP) for the Pi (currently DHCP-assigned
-      **192.168.4.40**) and every WLED controller.
+- [x] Renamed host from default `raspberrypi` to **`lights-hub`**
+      (`hostnamectl set-hostname` + `/etc/hosts` updated, 2026-09-27).
+- [x] Rotated the `lights` account password (2026-09-27) — the original was
+      typed in plaintext in chat while setting this up; new password was
+      generated locally, set via `chpasswd`, verified by SSH login, and
+      given to Michael once outside this file (not recorded here).
+- [ ] Router: DHCP reservation (fixed IP) for the Pi and every WLED
+      controller. **Not done by Claude** — router/network config changes are
+      done by Michael directly. Pi's current DHCP-assigned IP is
+      **192.168.4.40**, MAC `e4:5f:01:ab:a4:4b` — reserve that pairing.
 - [ ] Clean dust from the fan (moot for now — running off the old SD card's
       fan/heatsink setup, but still worth doing before final mounting).
 - [x] Run health checks — see results below.
