@@ -41,6 +41,7 @@ button, [role="button"], .segment-chip, .editor-row {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh; /* accounts for Safari's collapsing address bar */
 }
 
 .topbar {
@@ -626,4 +627,5 @@ button, [role="button"], .segment-chip, .editor-row {
 
 @media (min-width: 640px) {
   #app { max-width: 480px; margin: 0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.4); min-height: 100vh; }
+  .tabbar { max-width: 480px; margin: 0 auto; }
 }
