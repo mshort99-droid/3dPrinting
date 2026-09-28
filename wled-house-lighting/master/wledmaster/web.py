@@ -63,8 +63,23 @@ def create_app(manager: Manager) -> web.Application:
         result = manager.delete_scene(zone, scene)
         return web.json_response(result, status=200 if result.get("ok") else 400)
 
-    async def index(request: web.Request) -> web.FileResponse:
-        return web.FileResponse(STATIC_DIR / "index.html")
+    def _asset_url(name: str) -> str:
+        # Cache-bust static assets with their own mtime, so a phone that
+        # cached an old app.js/style.css picks up a deploy immediately
+        # instead of needing a manual hard-refresh (bit us more than once).
+        try:
+            version = int((STATIC_DIR / name).stat().st_mtime)
+        except OSError:
+            version = 0
+        return f"/static/{name}?v={version}"
+
+    async def index(request: web.Request) -> web.Response:
+        html = (STATIC_DIR / "index.html").read_text()
+        html = html.replace("/static/style.css", _asset_url("style.css"))
+        html = html.replace("/static/app.js", _asset_url("app.js"))
+        # The HTML shell itself must never be cached, or the browser won't
+        # even see the new asset URLs above after a deploy.
+        return web.Response(text=html, content_type="text/html", headers={"Cache-Control": "no-store"})
 
     app.router.add_get("/", index)
     app.router.add_get("/api/state", get_state)
