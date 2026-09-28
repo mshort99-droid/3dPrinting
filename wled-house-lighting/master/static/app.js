@@ -21,6 +21,19 @@
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   }
 
+  // Eyes perceive brightness roughly logarithmically, not linearly, so a
+  // slider mapped straight to WLED's 1-255 "bri" crams almost all the
+  // visible dimming into the bottom ~20% of its travel and barely changes
+  // anything above that. A simple gamma-2 curve (slider % squared) spreads
+  // the perceived brightness change evenly across the slider instead.
+  const DIMMER_GAMMA = 2;
+  function percentToBri(pct) {
+    return Math.max(1, Math.min(255, Math.round(255 * Math.pow(pct / 100, DIMMER_GAMMA))));
+  }
+  function briToPercent(bri) {
+    return Math.max(1, Math.min(100, Math.round(100 * Math.pow(bri / 255, 1 / DIMMER_GAMMA))));
+  }
+
   function toast(msg) {
     const el = $("#toast");
     el.textContent = msg;
@@ -107,7 +120,10 @@
     const dimmer = $("#master-dimmer");
     if (document.activeElement !== dimmer) {
       const bris = Object.values(zone.controllers).map((c) => c.bri).filter((b) => b != null);
-      if (bris.length) dimmer.value = Math.round(bris.reduce((a, b) => a + b, 0) / bris.length);
+      if (bris.length) {
+        const avgBri = bris.reduce((a, b) => a + b, 0) / bris.length;
+        dimmer.value = briToPercent(avgBri);
+      }
     }
 
     const activeName = Object.entries(zone.scenes).find(([, s]) => s.active)?.[0];
@@ -458,7 +474,7 @@
   $("#master-dimmer").addEventListener("input", (e) => {
     if (!currentZone) return;
     clearTimeout(dimmerDebounce);
-    const bri = Number(e.target.value);
+    const bri = percentToBri(Number(e.target.value));
     dimmerDebounce = setTimeout(() => {
       api(`/api/zones/${currentZone}/brightness`, {
         method: "POST",
