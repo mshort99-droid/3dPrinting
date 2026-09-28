@@ -251,16 +251,17 @@ Two different difficulty levels depending on what "create" means:
       typed in plaintext in chat while setting this up; new password was
       generated locally, set via `chpasswd`, verified by SSH login, and
       given to Michael once outside this file (not recorded here).
-- [ ] **Router: DHCP reservation (fixed IP) for the Pi and every WLED
-      controller — confirmed to actually bite, not just theoretical.**
-      On 2026-09-28 all 3 Bar controllers went unreachable for hours;
-      DHCP had reassigned their IPs to other devices on the network
-      (only the Pi's own IP had a reservation). Found them again by MAC
-      address and updated `house.yaml`, but this will keep happening
-      until each of these gets a router reservation. **Not done by
-      Claude** — router/network config changes are done by Michael
-      directly.
-      | Controller | MAC | Current IP (as of 2026-09-28) |
+- [x] **Router: DHCP reservation (fixed IP) for the Pi and every WLED
+      controller.** Confirmed to actually bite, not just theoretical: on
+      2026-09-28 all 3 Bar controllers went unreachable for hours because
+      DHCP reassigned their IPs to other devices (only the Pi's own IP had
+      a reservation at the time). Found them again by MAC address and
+      updated `house.yaml`. Michael has since reserved all Bar controllers
+      at their current IPs (2026-09-28), and said he'd reserve the rest of
+      his WLED controllers house-wide too, not just these 3 — worth
+      double-checking a device's reservation still matches `house.yaml`
+      if a "controller offline" issue ever comes back.
+      | Controller | MAC | Reserved IP |
       |---|---|---|
       | Pi (`lights-hub`) | `e4:5f:01:ab:a4:4b` | 192.168.4.40 |
       | `under_bar` | `3c:8a:1f:04:91:68` | 192.168.4.24 |
