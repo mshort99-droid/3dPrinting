@@ -133,6 +133,47 @@ Assistant), with a web interface and Alexa control added later.
      more zones, and any controller-*config*-writing (presets/segments/LED
      layout) — the master only sends runtime commands (preset select,
      segment on/off/color/fx/brightness), same as before.
+
+   **Important gotcha found 2026-09-27 (real, hit live in production more
+   than once): never use `preset:` scene actions on a controller that has
+   segments defined.** A WLED preset saved before a controller's segments
+   were split bundles its own old segment layout (in this case, a single
+   whole-strip segment). Applying that preset — even just for its color/
+   effect — silently collapses the controller's current segments back to
+   that old layout (and reverts segment names), with no error or warning.
+   This happened to both `under_bar` and `bar_shelves` mid-session when
+   the (then still preset-based) `Just Lit`/`Christmas`/`The Blues` scenes
+   were applied, and had to be fixed by hand over the WLED JSON API each
+   time. Fixed properly by rewriting those three scenes as segment actions
+   instead (`config/house.yaml`), which can't cause this since they only
+   ever address the one named segment. `SceneAction`/`_build_command` in
+   `manager.py` still support `preset:` for controllers that are
+   deliberately left unsegmented — just don't mix the two on one
+   controller.
+
+   **Debugging detour, 2026-09-27:** what looked at first like "buttons
+   need several taps to work" on the web UI turned out to be three
+   separate, smaller things, not one bug:
+   1. A real one: the dashboard polled `/api/state` every 4s and did a
+      full DOM rebuild every tick regardless of whether anything changed,
+      which could replace a button out from under an in-progress tap.
+      Fixed — only re-render when the fetched state actually differs, and
+      skip a poll if the previous one hasn't finished.
+   2. Not a bug: at least once, the browser pane Claude shares with the
+      user was pointed at a dead/leftover tab (a temporary local test
+      server, already shut down) rather than the real
+      `http://192.168.4.40:8080` — clicking anything there was never going
+      to do anything. Worth remembering: Claude's own ad-hoc local testing
+      in that shared pane can silently replace whatever tab the user has
+      open, so prefer a dedicated background tab (`tabs_create` with
+      `foreground: false`) for that instead of reusing/navigating the
+      user's active one.
+   3. Not a bug, a missing feature: the user's actual remaining complaint
+      ("why is one scene button a different color") was that scene card
+      colors were only ever a preview of that scene's *own* configured
+      colors, never an indicator of which scene is *currently active* on
+      the real hardware. Led to the active-scene indicator above, and to
+      finding the preset-clobbering bug in the first place.
 2. **7" overview panel** firmware (ESP32-S3, LVGL 9, PlatformIO).
 3. **Knob zone panels**, starting with the bar.
 4. **Alexa** (Hue/WeMo-style device emulation on the Pi; test Echo discovery early).
