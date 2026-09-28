@@ -2,14 +2,14 @@ zones:
   bar:
     controllers:
       under_bar:
-        host: 192.168.4.42
+        host: 192.168.4.24
         segments:
           underbar1: 0
           underbar2: 1
           underbar3: 2
           underbar4: 3
       bar_shelves:
-        host: 192.168.4.49
+        host: 192.168.4.38
         # segment N = position N counting from the bottom shelf up
         segments:
           shelf11: 0
@@ -17,7 +17,7 @@ zones:
           shelf13: 2
           shelf14: 3
       bar_shelves_2:
-        host: 192.168.6.240
+        host: 192.168.4.39
         # segment N = position N counting from the bottom shelf up
         segments:
           shelf21: 0
