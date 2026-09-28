@@ -204,6 +204,16 @@ Assistant), with a web interface and Alexa control added later.
    currently-running effect, a pre-existing behavior worth knowing about).
    Implementation in `renderSceneEditor()` / `applyPaneToSelection()` /
    `seedEditPaneFrom()` in `app.js`.
+   - **Bug found and fixed same day:** the selected/targeted row highlight
+     and the in-scene row highlight were both plain background tints, and
+     CSS cascade meant `.targeted` always visually overrode `.included` —
+     so checking a box to edit a segment hid whether it was actually in
+     the scene, right when that mattered most. Fixed by making them
+     independent: `.included` stays a background tint, `.targeted` is now
+     an inset ring (`box-shadow`, not `background`), and scene membership
+     also gets its own always-visible badge (a checkmark + effect name,
+     e.g. "✓ Solid", vs. dim "Not in scene") that's driven purely by
+     `sd.included` and never touched by selection state.
 
    **Important gotcha found 2026-09-27 (real, hit live in production more
    than once): never use `preset:` scene actions on a controller that has

@@ -400,13 +400,17 @@
         .map(([sname, sd]) => {
           const key = segKey(cname, sname);
           const targeted = editPaneSelection.has(key);
+          // This label reflects only `sd.included` (the saved scene membership) —
+          // never `targeted` (the edit panel's current selection) — so checking a
+          // box to edit a segment can never visually hide whether it's actually
+          // part of the scene.
           const fxLabel = !sd.included
             ? "Not in scene"
             : !sd.power
-            ? "Off"
+            ? "✓ Off"
             : sd.fx
-            ? escapeHtml(effectsList[sd.fx] || "Effect")
-            : "Solid";
+            ? `✓ ${escapeHtml(effectsList[sd.fx] || "Effect")}`
+            : "✓ Solid";
           return `
           <div class="se-segment ${sd.included ? "included" : ""} ${targeted ? "targeted" : ""}" data-controller="${cname}" data-segment="${sname}">
             <label class="seg-check-wrap">
@@ -415,7 +419,7 @@
             <div class="seg-row-body">
               <span class="seg-swatch" style="background:${sd.included ? rgbToHex(sd.col) : "transparent"}; opacity:${sd.included && sd.power ? 1 : 0.3}"></span>
               <span class="se-segment-name">${escapeHtml(sname)}</span>
-              <span class="seg-fx-label">${fxLabel}</span>
+              <span class="seg-fx-label ${sd.included ? "in-scene" : ""}">${fxLabel}</span>
             </div>
           </div>`;
         })

@@ -437,11 +437,15 @@ button, [role="button"], .segment-chip, .editor-row {
   gap: 8px;
   padding: 6px 12px;
   border-bottom: 1px solid var(--border);
-  transition: background 0.15s;
+  transition: background 0.15s, box-shadow 0.15s;
 }
 .se-segment:last-child { border-bottom: none; }
+/* Deliberately two independent signals that must never hide one another:
+   .included (saved scene membership) is a background tint; .targeted
+   (currently checked for the edit panel) is an inset ring. A segment can
+   be either, neither, or both at once and both stay visible. */
 .se-segment.included { background: rgba(124, 158, 255, 0.06); }
-.se-segment.targeted { background: rgba(124, 158, 255, 0.16); }
+.se-segment.targeted { box-shadow: inset 0 0 0 2px var(--accent); }
 .se-segment-name {
   font-size: 14px;
   font-weight: 500;
@@ -486,6 +490,10 @@ button, [role="button"], .segment-chip, .editor-row {
   font-size: 12px;
   color: var(--text-faint);
   white-space: nowrap;
+}
+.seg-fx-label.in-scene {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .edit-pane {
