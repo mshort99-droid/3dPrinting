@@ -43,6 +43,30 @@ class Manager:
             return {"ok": False, "error": f"unknown scene '{scene_name}' in zone '{zone_name}'"}
         return await self._send_actions(zone, actions)
 
+    async def toggle_zone_power(self, zone_name: str) -> dict:
+        """Turn every controller in the zone fully off, or back on.
+
+        Uses each WLED controller's top-level "on" switch rather than
+        touching individual segments - WLED keeps every segment's own
+        color/effect/on-state in memory while the controller is off, so
+        turning it back on restores exactly what was showing before,
+        including scenes that had some segments off (e.g. "Top Shelves
+        Off") - no need to remember which scene was last applied.
+        """
+        zone = self.config.zones.get(zone_name)
+        if zone is None:
+            return {"ok": False, "error": f"unknown zone '{zone_name}'"}
+        any_on = any(
+            (self.clients[c.name].last_state or {}).get("state", {}).get("on")
+            for c in zone.controllers.values()
+        )
+        turn_on = not any_on
+        results = {}
+        for controller in zone.controllers.values():
+            sent = await self.clients[controller.name].send({"on": turn_on})
+            results[controller.name] = "sent" if sent else "not connected"
+        return {"ok": True, "on": turn_on, "results": results}
+
     async def preview(self, zone_name: str, action_raw: dict) -> dict:
         zone = self.config.zones.get(zone_name)
         if zone is None:

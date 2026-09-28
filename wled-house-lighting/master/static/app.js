@@ -105,6 +105,9 @@
       ? `<span class="dot"></span>${escapeHtml(activeName)}`
       : `<span class="dot"></span>Custom (no scene matches)`;
 
+    const anyOn = Object.values(zone.controllers).some((c) => c.on);
+    $("#power-toggle").classList.toggle("on", anyOn);
+
     const grid = $("#scene-grid");
     grid.innerHTML = "";
     for (const [name, scene] of Object.entries(zone.scenes)) {
@@ -443,6 +446,19 @@
   $$(".tab-btn").forEach((btn) =>
     btn.addEventListener("click", () => switchView(btn.dataset.view))
   );
+
+  $("#power-toggle").addEventListener("click", async () => {
+    if (!currentZone) return;
+    const btn = $("#power-toggle");
+    btn.disabled = true;
+    try {
+      const result = await api(`/api/zones/${currentZone}/toggle-power`, { method: "POST" });
+      toast(result.on ? "Lights on" : "All lights off");
+      await loadState(true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
 
   loadState();
   pollTimer = setInterval(loadState, 4000);

@@ -84,6 +84,33 @@ button, [role="button"], .segment-chip, .editor-row, .scene-card {
 }
 .now-playing.custom { color: var(--text-faint); font-style: italic; }
 
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.power-toggle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.power-toggle svg { width: 20px; height: 20px; fill: currentColor; }
+.power-toggle.on {
+  color: var(--success);
+  border-color: rgba(74, 222, 128, 0.4);
+  background: rgba(74, 222, 128, 0.1);
+}
+.power-toggle:active { transform: scale(0.94); }
+
 .conn-dot {
   width: 10px;
   height: 10px;
