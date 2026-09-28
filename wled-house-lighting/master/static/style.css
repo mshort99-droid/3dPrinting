@@ -290,9 +290,11 @@ button, [role="button"], .segment-chip, .editor-row {
 .segment-chip {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
+  width: 112px;
   min-height: 44px;
-  padding: 7px 14px 7px 10px;
+  padding: 7px 10px;
   border-radius: 999px;
   background: var(--bg-elev-2);
   border: 1px solid var(--border);
@@ -302,6 +304,11 @@ button, [role="button"], .segment-chip, .editor-row {
   touch-action: manipulation;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
+.segment-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .segment-chip .dot {
   width: 16px;

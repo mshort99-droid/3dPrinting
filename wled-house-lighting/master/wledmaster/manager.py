@@ -235,6 +235,7 @@ class Manager:
                     col = live.get("col") or [[0, 0, 0]]
                     segments[seg_name] = {
                         "id": seg_id,
+                        "display_name": zone.segment_names.get(seg_name, seg_name),
                         "on": live.get("on"),
                         "col": col,  # up to 3 slots: [primary, secondary, tertiary]
                         "fx": live.get("fx", 0),
@@ -244,6 +245,7 @@ class Manager:
                 live_state = (client.last_state or {}).get("state", {})
                 controllers[cname] = {
                     "host": controller.host,
+                    "display_name": controller.display_name or cname,
                     "connected": client.connected,
                     "on": live_state.get("on"),
                     "bri": live_state.get("bri"),

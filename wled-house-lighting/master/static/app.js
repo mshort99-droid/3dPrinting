@@ -184,13 +184,13 @@
           ([sname, seg]) => `
         <div class="segment-chip ${seg.on ? "" : "off"}" data-controller="${cname}" data-segment="${sname}" data-on="${seg.on ? "1" : "0"}">
           <span class="dot" style="background:${rgbToHex(seg.col[0])}"></span>
-          ${escapeHtml(sname)}
+          <span class="segment-chip-label">${escapeHtml(seg.display_name || sname)}</span>
         </div>`
         )
         .join("");
       card.innerHTML = `
         <div class="controller-head">
-          <span class="controller-name">${escapeHtml(cname)}</span>
+          <span class="controller-name">${escapeHtml(c.display_name || cname)}</span>
           <span class="controller-status ${c.connected ? "connected" : ""}">${c.connected ? "connected" : "offline"}</span>
         </div>
         <div class="segment-row">${segChips}</div>
@@ -431,7 +431,7 @@
             </label>
             <div class="seg-row-body">
               <span class="seg-swatch" style="background:${sd.included ? rgbToHex(sd.col[0]) : "transparent"}; opacity:${sd.included && sd.power ? 1 : 0.3}"></span>
-              <span class="se-segment-name">${escapeHtml(sname)}</span>
+              <span class="se-segment-name">${escapeHtml((zone.controllers[cname]?.segments[sname]?.display_name) || sname)}</span>
               <span class="seg-fx-label ${sd.included ? "in-scene" : ""}">${fxLabel}</span>
             </div>
           </div>`;
@@ -441,7 +441,7 @@
       controllersHtml += `
         <div class="se-controller" data-controller="${cname}">
           <div class="se-controller-head">
-            <span>${escapeHtml(cname)}</span>
+            <span>${escapeHtml(zone.controllers[cname]?.display_name || cname)}</span>
             <button type="button" class="select-all-btn ctrl-select-all" data-controller="${cname}">Select all</button>
           </div>
           ${segRows}

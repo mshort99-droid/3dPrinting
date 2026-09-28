@@ -2,6 +2,7 @@ zones:
   bar:
     controllers:
       under_bar:
+        display_name: Under Bar
         host: 192.168.4.24
         segments:
           underbar1: 0
@@ -9,6 +10,7 @@ zones:
           underbar3: 2
           underbar4: 3
       bar_shelves:
+        display_name: Bar Shelf 1
         host: 192.168.4.38
         # segment N = position N counting from the bottom shelf up
         segments:
@@ -17,6 +19,7 @@ zones:
           shelf13: 2
           shelf14: 3
       bar_shelves_2:
+        display_name: Bar Shelf 2
         host: 192.168.4.39
         # segment N = position N counting from the bottom shelf up
         segments:
@@ -24,6 +27,23 @@ zones:
           shelf22: 1
           shelf23: 2
           shelf24: 3
+
+    # Friendlier labels for the UI only - scenes/actions still address
+    # segments by their real name above. Edit freely; nothing else depends
+    # on the text here.
+    segment_names:
+      underbar1: Rail 1
+      underbar2: Rail 2
+      underbar3: Rail 3
+      underbar4: Rail 4
+      shelf11: Shelf 1
+      shelf12: Shelf 2
+      shelf13: Shelf 3
+      shelf14: Shelf 4
+      shelf21: Shelf 1
+      shelf22: Shelf 2
+      shelf23: Shelf 3
+      shelf24: Shelf 4
 
     # Each scene is a list of actions. An action targets a controller and
     # either:

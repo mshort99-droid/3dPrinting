@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
@@ -12,6 +12,9 @@ class Controller:
     host: str
     # segment name -> WLED segment id, as configured on the controller itself
     segments: dict[str, int]
+    # friendlier label for the UI - falls back to `name` when unset. Purely
+    # cosmetic: every scene/action still addresses the controller by `name`.
+    display_name: str | None = None
 
 
 @dataclass
@@ -60,6 +63,11 @@ class Zone:
     name: str
     controllers: dict[str, Controller]
     scenes: dict[str, list[SceneAction]]
+    # segment name -> friendlier label for the UI, e.g. "shelf21" -> "Shelf 1".
+    # Flat (not per-controller) since segment names are already unique within
+    # a zone; falls back to the segment's own name when unset. Cosmetic only -
+    # scenes still address segments by their real name.
+    segment_names: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -114,10 +122,16 @@ def load_config(path: Path) -> Config:
                 name=ctrl_name,
                 host=ctrl_raw["host"],
                 segments=ctrl_raw.get("segments") or {},
+                display_name=ctrl_raw.get("display_name"),
             )
             for ctrl_name, ctrl_raw in (zone_raw.get("controllers") or {}).items()
         }
-        zone = Zone(name=zone_name, controllers=controllers, scenes={})
+        zone = Zone(
+            name=zone_name,
+            controllers=controllers,
+            scenes={},
+            segment_names=zone_raw.get("segment_names") or {},
+        )
 
         for scene_name, actions_raw in (zone_raw.get("scenes") or {}).items():
             actions = [parse_action(a) for a in actions_raw]

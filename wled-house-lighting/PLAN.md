@@ -264,6 +264,31 @@ Assistant), with a web interface and Alexa control added later.
    so the browser always re-checks for those (possibly new) URLs. No more
    manual hard-refresh needed after a deploy.
 
+   **Consistent segment-chip size + friendly display names (2026-09-28):**
+   the dashboard's on/off segment chips auto-sized to their label, so
+   `underbar1` was visibly wider than `shelf14` — fixed with a fixed
+   `width: 112px` + centered content + ellipsis overflow on
+   `.segment-chip-label` instead of letting the pill grow with its text.
+   Also added a purely-cosmetic friendly-name layer so the UI doesn't have
+   to show raw config keys like `shelf21` or `bar_shelves_2`:
+   - `Controller.display_name` (optional, per controller) and
+     `Zone.segment_names` (a flat `{segment_name: label}` dict, since
+     segment names are already unique within a zone) in `config.py`.
+     Both fall back to the real name when unset, and neither is used by
+     any scene/action logic - purely a display overlay, so nothing about
+     how scenes address controllers/segments changed.
+   - `house.yaml`: `display_name: Under Bar` / `Bar Shelf 1` / `Bar Shelf 2`
+     per controller, plus a `segment_names:` block mapping e.g. `shelf21:
+     Shelf 1` and `underbar1: Rail 1`. Michael can freely edit these labels
+     later - it's just a small YAML section, nothing else depends on the
+     text.
+   - `manager.py`'s `dashboard_state()` now includes `display_name` on
+     both controllers and segments; `app.js` uses it (falling back to the
+     real name) for the dashboard's controller headings/chip labels and
+     the scene editor's controller headings/segment-row labels, while
+     `data-controller`/`data-segment` attributes (used for all lookups)
+     keep using the real technical name throughout.
+
    **Important gotcha found 2026-09-27 (real, hit live in production more
    than once): never use `preset:` scene actions on a controller that has
    segments defined.** A WLED preset saved before a controller's segments
