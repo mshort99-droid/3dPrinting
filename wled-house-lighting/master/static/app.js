@@ -100,16 +100,17 @@
 
     const grid = $("#scene-grid");
     grid.innerHTML = "";
-    for (const [name, actions] of Object.entries(zone.scenes)) {
-      const cols = sceneSwatchColors(actions);
+    for (const [name, scene] of Object.entries(zone.scenes)) {
+      const cols = sceneSwatchColors(scene.actions);
       const card = document.createElement("button");
-      card.className = "scene-card";
+      card.className = "scene-card" + (scene.active ? " active" : "");
       const gradient =
         cols.length > 1
           ? `linear-gradient(135deg, ${cols.map(rgbToHex).join(", ")})`
           : `radial-gradient(circle at 30% 20%, ${rgbToHex(cols[0])}, transparent 70%)`;
       card.innerHTML = `
         <div class="swatch-bg" style="background:${gradient}"></div>
+        ${scene.active ? '<div class="active-badge">&#10003; On</div>' : ""}
         <div class="scene-name">${escapeHtml(name)}</div>
       `;
       card.addEventListener("click", async () => {
@@ -174,13 +175,13 @@
     const zone = state[currentZone];
     const container = $("#editor-scene-list");
     container.innerHTML = "";
-    for (const [name, actions] of Object.entries(zone.scenes)) {
-      const cols = sceneSwatchColors(actions);
+    for (const [name, scene] of Object.entries(zone.scenes)) {
+      const cols = sceneSwatchColors(scene.actions);
       const row = document.createElement("div");
       row.className = "editor-row";
       row.innerHTML = `
         <div>
-          <div>${escapeHtml(name)}</div>
+          <div>${escapeHtml(name)}${scene.active ? ' <span class="active-tag">On</span>' : ""}</div>
           <div class="swatch-strip">${cols
             .slice(0, 6)
             .map((c) => `<span style="background:${rgbToHex(c)}"></span>`)
@@ -218,7 +219,7 @@
       }
     }
     if (sceneName) {
-      for (const action of zone.scenes[sceneName]) {
+      for (const action of zone.scenes[sceneName].actions) {
         const cd = draft.controllers[action.controller];
         if (!cd) continue;
         if (action.preset !== undefined && action.preset !== null) {

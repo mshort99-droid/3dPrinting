@@ -177,11 +177,40 @@ class Manager:
             zones[zone_name] = {
                 "controllers": controllers,
                 "scenes": {
-                    sname: [a.to_dict() for a in actions]
+                    sname: {
+                        "actions": [a.to_dict() for a in actions],
+                        "active": self._scene_is_active(zone, actions),
+                    }
                     for sname, actions in zone.scenes.items()
                 },
             }
         return zones
+
+    def _scene_is_active(self, zone: Zone, actions: list[SceneAction]) -> bool:
+        """Whether the live device state currently matches every action in
+        this scene - used to highlight which scene (if any) is "on" right
+        now, rather than just previewing each scene's own configured colors."""
+        for action in actions:
+            client = self.clients[action.controller]
+            live_state = (client.last_state or {}).get("state")
+            if live_state is None:
+                return False
+            if action.preset is not None:
+                if live_state.get("ps") != action.preset:
+                    return False
+                continue
+            controller = zone.controllers[action.controller]
+            seg_id = controller.segments[action.segment]
+            live_seg = next((s for s in live_state.get("seg", []) if s.get("id") == seg_id), None)
+            if live_seg is None:
+                return False
+            if action.on is not None and bool(live_seg.get("on")) != bool(action.on):
+                return False
+            if action.on and action.col is not None:
+                live_col = (live_seg.get("col") or [[0, 0, 0]])[0]
+                if list(live_col) != list(action.col):
+                    return False
+        return True
 
     async def serve_control_socket(self, socket_path: str) -> None:
         async def handle(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:

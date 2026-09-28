@@ -34,20 +34,83 @@ zones:
     #                              parses bare on/off as booleans, which
     #                              silently corrupts a literal "on:" key.
     # Multiple actions for the same controller are combined into one command.
+    # NOTE: scenes use segment actions exclusively, not WLED "preset:"
+    # actions, even though these controllers do have presets saved on them.
+    # Found out the hard way (2026-09-27): a preset saved before a
+    # controller's segments were split can bundle its own OLD segment
+    # layout, and applying it silently collapses/renames the current
+    # segments back to that old layout. Segment-based actions can't have
+    # this problem since they only ever touch the segment they name.
     scenes:
       Just Lit:
         - controller: under_bar
-          preset: 2
+          segment: underbar1
+          power: true
+          col: [255, 255, 255]
+        - controller: under_bar
+          segment: underbar2
+          power: true
+          col: [255, 255, 255]
+        - controller: under_bar
+          segment: underbar3
+          power: true
+          col: [255, 255, 255]
+        - controller: under_bar
+          segment: underbar4
+          power: true
+          col: [255, 255, 255]
         - controller: bar_shelves
-          preset: 3
+          segment: shelf11
+          power: true
+          col: [255, 255, 255]
+        - controller: bar_shelves
+          segment: shelf12
+          power: true
+          col: [255, 255, 255]
+        - controller: bar_shelves
+          segment: shelf13
+          power: true
+          col: [255, 255, 255]
+        - controller: bar_shelves
+          segment: shelf14
+          power: true
+          col: [255, 255, 255]
 
       Christmas:
         - controller: bar_shelves
-          preset: 1
+          segment: shelf11
+          power: true
+          col: [255, 0, 0]
+        - controller: bar_shelves
+          segment: shelf12
+          power: true
+          col: [0, 200, 0]
+        - controller: bar_shelves
+          segment: shelf13
+          power: true
+          col: [255, 0, 0]
+        - controller: bar_shelves
+          segment: shelf14
+          power: true
+          col: [0, 200, 0]
 
       The Blues:
         - controller: bar_shelves
-          preset: 2
+          segment: shelf11
+          power: true
+          col: [0, 80, 255]
+        - controller: bar_shelves
+          segment: shelf12
+          power: true
+          col: [0, 80, 255]
+        - controller: bar_shelves
+          segment: shelf13
+          power: true
+          col: [0, 80, 255]
+        - controller: bar_shelves
+          segment: shelf14
+          power: true
+          col: [0, 80, 255]
 
       Warm White (all shelves):
         - controller: under_bar
