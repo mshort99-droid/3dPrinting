@@ -28,6 +28,12 @@ def create_app(manager: Manager) -> web.Application:
         result = await manager.toggle_zone_power(zone)
         return web.json_response(result, status=200 if result.get("ok") else 400)
 
+    async def set_brightness(request: web.Request) -> web.Response:
+        zone = request.match_info["zone"]
+        body = await request.json()
+        result = await manager.set_zone_brightness(zone, body.get("bri", 128))
+        return web.json_response(result, status=200 if result.get("ok") else 400)
+
     async def preview(request: web.Request) -> web.Response:
         zone = request.match_info["zone"]
         action = await request.json()
@@ -61,6 +67,7 @@ def create_app(manager: Manager) -> web.Application:
     app.router.add_get("/api/state", get_state)
     app.router.add_post("/api/zones/{zone}/preview", preview)
     app.router.add_post("/api/zones/{zone}/toggle-power", toggle_power)
+    app.router.add_post("/api/zones/{zone}/brightness", set_brightness)
     app.router.add_post("/api/zones/{zone}/scenes/{scene}/apply", apply_scene)
     app.router.add_post("/api/zones/{zone}/scenes/{scene}", save_scene)
     app.router.add_post("/api/zones/{zone}/scenes/{scene}/rename", rename_scene)

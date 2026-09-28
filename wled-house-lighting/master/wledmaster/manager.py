@@ -67,6 +67,20 @@ class Manager:
             results[controller.name] = "sent" if sent else "not connected"
         return {"ok": True, "on": turn_on, "results": results}
 
+    async def set_zone_brightness(self, zone_name: str, bri: int) -> dict:
+        """Master dimmer: set overall brightness on every controller in the
+        zone. Doesn't touch per-segment colors/on-state, same as the power
+        toggle - just WLED's top-level "bri"."""
+        zone = self.config.zones.get(zone_name)
+        if zone is None:
+            return {"ok": False, "error": f"unknown zone '{zone_name}'"}
+        bri = max(1, min(255, int(bri)))
+        results = {}
+        for controller in zone.controllers.values():
+            sent = await self.clients[controller.name].send({"bri": bri})
+            results[controller.name] = "sent" if sent else "not connected"
+        return {"ok": True, "bri": bri, "results": results}
+
     async def preview(self, zone_name: str, action_raw: dict) -> dict:
         zone = self.config.zones.get(zone_name)
         if zone is None:
@@ -192,10 +206,12 @@ class Manager:
                         "on": live.get("on"),
                         "col": col[0] if col else [0, 0, 0],
                     }
+                live_state = (client.last_state or {}).get("state", {})
                 controllers[cname] = {
                     "host": controller.host,
                     "connected": client.connected,
-                    "on": (client.last_state or {}).get("state", {}).get("on"),
+                    "on": live_state.get("on"),
+                    "bri": live_state.get("bri"),
                     "segments": segments,
                 }
             zones[zone_name] = {

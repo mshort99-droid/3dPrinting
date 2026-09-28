@@ -29,7 +29,7 @@ html, body {
   overscroll-behavior-y: contain;
 }
 
-button, [role="button"], .segment-chip, .editor-row, .scene-card {
+button, [role="button"], .segment-chip, .editor-row {
   /* Skip the ~300ms double-tap-zoom delay mobile browsers otherwise wait
      out before firing click, and stop the browser trying to interpret a
      tap as the start of a pinch/pan gesture. */
@@ -45,13 +45,19 @@ button, [role="button"], .segment-chip, .editor-row, .scene-card {
 
 .topbar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: calc(env(safe-area-inset-top, 0px) + 18px) 20px 14px;
+  flex-direction: column;
+  gap: 14px;
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) 20px 16px;
   position: sticky;
   top: 0;
-  background: linear-gradient(180deg, var(--bg) 70%, transparent);
+  background: linear-gradient(180deg, var(--bg) 85%, transparent);
   z-index: 5;
+}
+
+.topbar-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .topbar h1 {
@@ -61,38 +67,15 @@ button, [role="button"], .segment-chip, .editor-row, .scene-card {
   margin: 0;
 }
 
-.now-playing {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-dim);
-}
-.now-playing .dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--success);
-  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.18);
-  flex-shrink: 0;
-}
-.now-playing.custom .dot {
-  background: var(--text-faint);
-  box-shadow: none;
-}
-.now-playing.custom { color: var(--text-faint); font-style: italic; }
-
-.topbar-right {
+.control-row {
   display: flex;
   align-items: center;
   gap: 14px;
 }
 
 .power-toggle {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--bg-elev);
@@ -102,6 +85,7 @@ button, [role="button"], .segment-chip, .editor-row, .scene-card {
   justify-content: center;
   cursor: pointer;
   touch-action: manipulation;
+  flex-shrink: 0;
 }
 .power-toggle svg { width: 20px; height: 20px; fill: currentColor; }
 .power-toggle.on {
@@ -110,6 +94,63 @@ button, [role="button"], .segment-chip, .editor-row, .scene-card {
   background: rgba(74, 222, 128, 0.1);
 }
 .power-toggle:active { transform: scale(0.94); }
+
+.dimmer-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 44px;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.dimmer-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+}
+.dimmer-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px;
+  height: 26px;
+  margin-top: -9px;
+  border-radius: 50%;
+  background: var(--text);
+  border: 3px solid var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.dimmer-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+}
+.dimmer-slider::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--text);
+  border: 3px solid var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.scene-select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 40px 0 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-elev) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%239298ab"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 12px center;
+  background-size: 20px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+}
+.scene-select:focus { outline: 2px solid var(--accent); }
+.scene-select option { background: var(--bg-elev); color: var(--text); }
+.scene-select option[value=""] { color: var(--text-faint); font-style: italic; }
 
 .conn-dot {
   width: 10px;
@@ -144,61 +185,6 @@ button, [role="button"], .segment-chip, .editor-row, .scene-card {
   margin: 0 0 12px 2px;
 }
 
-/* ---- Scenes grid ---- */
-.scene-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-.scene-card {
-  position: relative;
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  min-height: 92px;
-  border: 1px solid var(--border);
-  background: var(--bg-elev);
-  color: var(--text);
-  overflow: hidden;
-  text-align: left;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  transition: transform 0.15s ease, border-color 0.15s ease;
-}
-.scene-card:active { transform: scale(0.97); }
-.scene-card .swatch-bg {
-  position: absolute;
-  inset: 0;
-  opacity: 0.55;
-  z-index: 0;
-}
-.scene-card .scene-name {
-  position: relative;
-  z-index: 1;
-  font-weight: 600;
-  font-size: 15px;
-  line-height: 1.25;
-  text-shadow: 0 1px 6px rgba(0,0,0,0.5);
-}
-.scene-card.applying { border-color: var(--accent); }
-.scene-card.active {
-  border-color: var(--success);
-  box-shadow: 0 0 0 1px var(--success), 0 0 20px -4px rgba(74, 222, 128, 0.4);
-}
-.active-badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 1;
-  background: rgba(10, 20, 14, 0.55);
-  color: var(--success);
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid rgba(74, 222, 128, 0.4);
-}
 .active-tag {
   display: inline-block;
   font-size: 10px;
@@ -210,19 +196,6 @@ button, [role="button"], .segment-chip, .editor-row, .scene-card {
   padding: 2px 8px;
   margin-left: 6px;
   vertical-align: middle;
-}
-
-.add-scene-card {
-  border-radius: var(--radius-lg);
-  min-height: 92px;
-  border: 1.5px dashed var(--border);
-  background: transparent;
-  color: var(--text-faint);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  cursor: pointer;
 }
 
 /* ---- Controllers ---- */

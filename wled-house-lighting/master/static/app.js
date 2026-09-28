@@ -98,43 +98,26 @@
     $("#zone-title").textContent = currentZone[0].toUpperCase() + currentZone.slice(1);
     const zone = state[currentZone];
 
-    const activeName = Object.entries(zone.scenes).find(([, s]) => s.active)?.[0];
-    const nowPlaying = $("#now-playing");
-    nowPlaying.classList.toggle("custom", !activeName);
-    nowPlaying.innerHTML = activeName
-      ? `<span class="dot"></span>${escapeHtml(activeName)}`
-      : `<span class="dot"></span>Custom (no scene matches)`;
-
     const anyOn = Object.values(zone.controllers).some((c) => c.on);
     $("#power-toggle").classList.toggle("on", anyOn);
 
-    const grid = $("#scene-grid");
-    grid.innerHTML = "";
-    for (const [name, scene] of Object.entries(zone.scenes)) {
-      const cols = sceneSwatchColors(scene.actions);
-      const card = document.createElement("button");
-      card.className = "scene-card" + (scene.active ? " active" : "");
-      const gradient =
-        cols.length > 1
-          ? `linear-gradient(135deg, ${cols.map(rgbToHex).join(", ")})`
-          : `radial-gradient(circle at 30% 20%, ${rgbToHex(cols[0])}, transparent 70%)`;
-      card.innerHTML = `
-        <div class="swatch-bg" style="background:${gradient}"></div>
-        ${scene.active ? '<div class="active-badge">&#10003; On</div>' : ""}
-        <div class="scene-name">${escapeHtml(name)}</div>
-      `;
-      card.addEventListener("click", async () => {
-        card.classList.add("applying");
-        try {
-          await api(`/api/zones/${currentZone}/scenes/${encodeURIComponent(name)}/apply`, {
-            method: "POST",
-          });
-          toast(`${name} applied`);
-        } finally {
-          setTimeout(() => card.classList.remove("applying"), 400);
-        }
-      });
-      grid.appendChild(card);
+    // Master dimmer: reflect the average of controllers that report a
+    // brightness, but only when the user isn't actively dragging it -
+    // otherwise a poll mid-drag would yank the thumb back.
+    const dimmer = $("#master-dimmer");
+    if (document.activeElement !== dimmer) {
+      const bris = Object.values(zone.controllers).map((c) => c.bri).filter((b) => b != null);
+      if (bris.length) dimmer.value = Math.round(bris.reduce((a, b) => a + b, 0) / bris.length);
+    }
+
+    const activeName = Object.entries(zone.scenes).find(([, s]) => s.active)?.[0];
+    const select = $("#scene-select");
+    if (document.activeElement !== select) {
+      select.innerHTML =
+        `<option value="" disabled ${activeName ? "" : "selected"} hidden>Custom (no scene matches)</option>` +
+        Object.keys(zone.scenes)
+          .map((name) => `<option value="${escapeHtml(name)}" ${name === activeName ? "selected" : ""}>${escapeHtml(name)}</option>`)
+          .join("");
     }
 
     const list = $("#controller-list");
@@ -458,6 +441,30 @@
     } finally {
       btn.disabled = false;
     }
+  });
+
+  $("#scene-select").addEventListener("change", async (e) => {
+    const name = e.target.value;
+    if (!currentZone || !name) return;
+    try {
+      await api(`/api/zones/${currentZone}/scenes/${encodeURIComponent(name)}/apply`, { method: "POST" });
+      toast(`${name} applied`);
+    } finally {
+      await loadState(true);
+    }
+  });
+
+  let dimmerDebounce = null;
+  $("#master-dimmer").addEventListener("input", (e) => {
+    if (!currentZone) return;
+    clearTimeout(dimmerDebounce);
+    const bri = Number(e.target.value);
+    dimmerDebounce = setTimeout(() => {
+      api(`/api/zones/${currentZone}/brightness`, {
+        method: "POST",
+        body: JSON.stringify({ bri }),
+      }).catch(() => {});
+    }, 120);
   });
 
   loadState();
