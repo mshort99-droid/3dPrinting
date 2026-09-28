@@ -106,7 +106,9 @@
   // ---------------- Dashboard ----------------
 
   function sceneSwatchColors(actions) {
-    const cols = actions.map((a) => a.col).filter(Boolean);
+    // Each action's col is now up to 3 slots (primary/secondary/tertiary) -
+    // the swatch only ever shows the primary one.
+    const cols = actions.map((a) => a.col && a.col[0]).filter(Boolean);
     return cols.length ? cols : [[124, 158, 255]];
   }
 
@@ -181,7 +183,7 @@
         .map(
           ([sname, seg]) => `
         <div class="segment-chip ${seg.on ? "" : "off"}" data-controller="${cname}" data-segment="${sname}" data-on="${seg.on ? "1" : "0"}">
-          <span class="dot" style="background:${rgbToHex(seg.col)}"></span>
+          <span class="dot" style="background:${rgbToHex(seg.col[0])}"></span>
           ${escapeHtml(sname)}
         </div>`
         )
@@ -250,6 +252,17 @@
 
   // ---------------- Scene editor (full screen) ----------------
 
+  // WLED segments carry up to 3 color slots (primary/secondary/tertiary -
+  // several effects/palettes need 2 or 3 to look right, not just one). The
+  // editor always works with exactly 3 slots internally; unset slots 2/3
+  // default to black (off), matching what WLED does when they're not used.
+  function normalizeCol(col) {
+    const primary = (col && col[0]) || [255, 180, 80];
+    const secondary = (col && col[1]) || [0, 0, 0];
+    const tertiary = (col && col[2]) || [0, 0, 0];
+    return [primary.slice(), secondary.slice(), tertiary.slice()];
+  }
+
   function buildDraft(sceneName) {
     const zone = state[currentZone];
     const draft = { origName: sceneName, name: sceneName || "New Scene", controllers: {} };
@@ -263,7 +276,7 @@
         draft.controllers[cname].segments[sname] = {
           included: false,
           power: true,
-          col: [255, 180, 80],
+          col: normalizeCol(null),
           fx: 0,
           sx: 128,
           pal: 0,
@@ -281,7 +294,7 @@
           cd.segments[action.segment] = {
             included: true,
             power: action.power !== false,
-            col: action.col || [255, 180, 80],
+            col: normalizeCol(action.col),
             fx: action.fx || 0,
             sx: action.sx != null ? action.sx : 128,
             pal: action.pal || 0,
@@ -332,7 +345,7 @@
   function openSceneEditor(sceneName) {
     editorDraft = buildDraft(sceneName);
     editPaneSelection = new Set();
-    editPane = { included: true, power: true, col: [255, 180, 80], fx: 0, sx: 128, pal: 0 };
+    editPane = { included: true, power: true, col: normalizeCol(null), fx: 0, sx: 128, pal: 0 };
     renderSceneEditor();
     switchView("scene-editor");
   }
@@ -351,7 +364,7 @@
     // happens not to be included yet, or the panel would default to excluding
     // anything new the moment you select it. Turning it off is always explicit.
     const stillIncluded = sd.included ? true : editPane.included;
-    editPane = { included: stillIncluded, power: sd.power, col: sd.col.slice(), fx: sd.fx, sx: sd.sx, pal: sd.pal };
+    editPane = { included: stillIncluded, power: sd.power, col: sd.col.map((c) => c.slice()), fx: sd.fx, sx: sd.sx, pal: sd.pal };
   }
 
   function addToPaneSelection(cname, sname) {
@@ -381,7 +394,7 @@
         if (!editPaneSelection.has(segKey(cname, sname))) continue;
         sd.included = editPane.included;
         sd.power = editPane.power;
-        sd.col = editPane.col.slice();
+        sd.col = editPane.col.map((c) => c.slice());
         sd.fx = editPane.fx;
         sd.sx = editPane.sx;
         sd.pal = editPane.pal;
@@ -417,7 +430,7 @@
               <input type="checkbox" class="seg-check" ${targeted ? "checked" : ""}>
             </label>
             <div class="seg-row-body">
-              <span class="seg-swatch" style="background:${sd.included ? rgbToHex(sd.col) : "transparent"}; opacity:${sd.included && sd.power ? 1 : 0.3}"></span>
+              <span class="seg-swatch" style="background:${sd.included ? rgbToHex(sd.col[0]) : "transparent"}; opacity:${sd.included && sd.power ? 1 : 0.3}"></span>
               <span class="se-segment-name">${escapeHtml(sname)}</span>
               <span class="seg-fx-label ${sd.included ? "in-scene" : ""}">${fxLabel}</span>
             </div>
@@ -451,7 +464,20 @@
           </label>
         </div>
         <div class="color-row">
-          <input type="color" class="color-swatch-input pane-color" value="${rgbToHex(editPane.col)}">
+          <div class="color-slots">
+            <div class="color-slot">
+              <input type="color" class="color-swatch-input pane-color-0" value="${rgbToHex(editPane.col[0])}">
+              <span class="color-slot-label">1</span>
+            </div>
+            <div class="color-slot">
+              <input type="color" class="color-swatch-input color-swatch-sub pane-color-1" value="${rgbToHex(editPane.col[1])}">
+              <span class="color-slot-label">2</span>
+            </div>
+            <div class="color-slot">
+              <input type="color" class="color-swatch-input color-swatch-sub pane-color-2" value="${rgbToHex(editPane.col[2])}">
+              <span class="color-slot-label">3</span>
+            </div>
+          </div>
           <span class="power-label">Power</span>
           <label class="switch" style="margin-left:auto">
             <input type="checkbox" class="pane-power" ${editPane.power ? "checked" : ""}>
@@ -534,15 +560,16 @@
         schedulePreview();
       });
     }
-    const paneColor = $(".pane-color", root);
-    if (paneColor) {
+    [0, 1, 2].forEach((slot) => {
+      const paneColor = $(`.pane-color-${slot}`, root);
+      if (!paneColor) return;
       paneColor.addEventListener("input", (e) => {
-        editPane.col = hexToRgb(e.target.value);
+        editPane.col[slot] = hexToRgb(e.target.value);
         applyPaneToSelection();
         schedulePreview();
       });
       paneColor.addEventListener("change", () => renderSceneEditor());
-    }
+    });
     const panePower = $(".pane-power", root);
     if (panePower) {
       panePower.addEventListener("change", (e) => {

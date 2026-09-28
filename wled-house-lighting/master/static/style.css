@@ -582,6 +582,27 @@ button, [role="button"], .segment-chip, .editor-row {
 .color-swatch-input::-webkit-color-swatch-wrapper { padding: 0; }
 .color-swatch-input::-webkit-color-swatch { border: none; border-radius: 50%; }
 
+.color-slots {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.color-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.color-slot-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+.color-swatch-sub {
+  width: 28px;
+  height: 28px;
+}
+
 .effect-select {
   width: 100%;
   min-height: 40px;

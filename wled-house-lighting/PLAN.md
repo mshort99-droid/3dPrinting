@@ -215,6 +215,43 @@ Assistant), with a web interface and Alexa control added later.
      e.g. "✓ Solid", vs. dim "Not in scene") that's driven purely by
      `sd.included` and never touched by selection state.
 
+   **Multi-color-slot support (2026-09-28):** several WLED effects/palettes
+   (e.g. the numbered "Color 1/2/3" palettes shown in the official WLED
+   app) need up to 3 colors per segment — primary, secondary, tertiary —
+   not just one. The data model only ever carried a single `col: [r,g,b]`
+   end-to-end (config, persistence, command-building, every part of the
+   frontend), so this was a real gap, not just a UI issue. Changed `col`
+   to `list[list[int]]` (up to 3 slots) throughout:
+   - `config.py`: `SceneAction.col` retyped; `parse_action()` transparently
+     wraps a legacy flat `[r,g,b]` from old `house.yaml` scenes into
+     `[[r,g,b]]` so nothing needs migrating — existing scenes keep behaving
+     exactly as before (WLED leaves unspecified slots untouched) until
+     edited and resaved through the new UI, at which point they start
+     explicitly sending all 3 slots (secondary/tertiary default to black)
+     for deterministic, repeatable-looking scenes.
+   - `manager.py`: `_build_command` sends `action.col` directly (was
+     wrapping it in an extra list); `dashboard_state()` now surfaces the
+     full 3-slot array instead of just the primary color; `_scene_is_active`
+     only compares the slots a scene action actually specifies, so a
+     primary-only action doesn't fail to match over an unrelated secondary/
+     tertiary difference.
+   - `app.js`: new `normalizeCol()` helper keeps exactly 3 slots everywhere
+     in the frontend (missing ones default to black, or to the existing
+     warm-white default for a segment that's never had a color at all).
+     Scene-editor edit panel now shows 3 small numbered color swatches
+     (1/2/3, primary larger) instead of one — considered a full custom
+     hue/saturation color wheel like the WLED app screenshot but chose the
+     simpler native-input approach to match the app's existing lightweight
+     style; the underlying data-model fix was the same either way.
+   - Verified against real Bar hardware: set `underbar1` to red primary +
+     blue secondary + the "Two Dots" effect via the new picker, confirmed
+     via the WLED device's own `/json/state` that `col` came back as
+     `[[255,0,0],[0,0,255],[0,0,0]]` with `fx: 50`, then restored the zone
+     to Warm White (explicitly re-zeroing secondary/tertiary, since — same
+     gotcha as before — WLED leaves a slot alone if a command doesn't
+     mention it). Deployed to the Pi; needed a `wled-master` service
+     restart since Python changed this time, not just static files.
+
    **Important gotcha found 2026-09-27 (real, hit live in production more
    than once): never use `preset:` scene actions on a controller that has
    segments defined.** A WLED preset saved before a controller's segments

@@ -145,7 +145,7 @@ class Manager:
             if action.on is not None:
                 seg["on"] = action.on
             if action.col is not None:
-                seg["col"] = [action.col]
+                seg["col"] = action.col
             if action.fx is not None:
                 seg["fx"] = action.fx
             if action.sx is not None:
@@ -232,11 +232,11 @@ class Manager:
                 segments = {}
                 for seg_name, seg_id in controller.segments.items():
                     live = live_segs.get(seg_id, {})
-                    col = live.get("col", [[0, 0, 0]])
+                    col = live.get("col") or [[0, 0, 0]]
                     segments[seg_name] = {
                         "id": seg_id,
                         "on": live.get("on"),
-                        "col": col[0] if col else [0, 0, 0],
+                        "col": col,  # up to 3 slots: [primary, secondary, tertiary]
                         "fx": live.get("fx", 0),
                         "sx": live.get("sx", 128),
                         "pal": live.get("pal", 0),
@@ -282,9 +282,14 @@ class Manager:
             if action.on is not None and bool(live_seg.get("on")) != bool(action.on):
                 return False
             if action.on and action.col is not None:
-                live_col = (live_seg.get("col") or [[0, 0, 0]])[0]
-                if list(live_col) != list(action.col):
-                    return False
+                live_col = live_seg.get("col") or [[0, 0, 0]]
+                # Only compare the slots this action actually sets - an action
+                # that only specifies a primary color shouldn't fail to match
+                # just because the live secondary/tertiary happen to differ.
+                for i, slot in enumerate(action.col):
+                    live_slot = live_col[i] if i < len(live_col) else [0, 0, 0]
+                    if list(live_slot) != list(slot):
+                        return False
             if action.on and action.fx is not None and live_seg.get("fx") != action.fx:
                 return False
             if action.on and action.sx is not None and live_seg.get("sx") != action.sx:

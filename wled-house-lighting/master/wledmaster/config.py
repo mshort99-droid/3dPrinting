@@ -20,7 +20,7 @@ class SceneAction:
     segment: str | None = None  # None = whole-controller action
     preset: int | None = None
     on: bool | None = None
-    col: list[int] | None = None  # [r, g, b]
+    col: list[list[int]] | None = None  # up to 3 slots: [primary, secondary, tertiary]
     fx: int | None = None  # WLED effect id (0 = Solid)
     sx: int | None = None  # effect speed, 0-255
     pal: int | None = None  # palette id
@@ -74,12 +74,18 @@ def parse_action(raw: dict) -> SceneAction:
     # YAML 1.1 parses bare `on`/`off` as booleans, so a literal "on: false" key
     # becomes {True: False}, not {"on": False}. Use "power" in the config file
     # instead and translate it to the SceneAction.on field here.
+    col = raw.get("col")
+    if col and not isinstance(col[0], (list, tuple)):
+        # Older scenes (saved before multi-color-slot support) store a single
+        # flat [r, g, b] triplet instead of a list of slots - treat that as
+        # "just a primary color" rather than requiring a house.yaml migration.
+        col = [col]
     return SceneAction(
         controller=raw["controller"],
         segment=raw.get("segment"),
         preset=raw.get("preset"),
         on=raw.get("power"),
-        col=raw.get("col"),
+        col=col,
         fx=raw.get("fx"),
         sx=raw.get("sx"),
         pal=raw.get("pal"),
