@@ -106,6 +106,20 @@
     return cols.length ? cols : [[124, 158, 255]];
   }
 
+  function sceneSwatchBackground(actions) {
+    const cols = sceneSwatchColors(actions).map(rgbToHex);
+    return cols.length > 1 ? `conic-gradient(${cols.join(", ")})` : cols[0];
+  }
+
+  function openSceneSheet() {
+    $("#scene-sheet-overlay").classList.remove("hidden");
+    $("#scene-select-trigger").setAttribute("aria-expanded", "true");
+  }
+  function closeSceneSheet() {
+    $("#scene-sheet-overlay").classList.add("hidden");
+    $("#scene-select-trigger").setAttribute("aria-expanded", "false");
+  }
+
   function renderDashboard() {
     if (!currentZone) return;
     $("#zone-title").textContent = currentZone[0].toUpperCase() + currentZone.slice(1);
@@ -127,14 +141,32 @@
     }
 
     const activeName = Object.entries(zone.scenes).find(([, s]) => s.active)?.[0];
-    const select = $("#scene-select");
-    if (document.activeElement !== select) {
-      select.innerHTML =
-        `<option value="" disabled ${activeName ? "" : "selected"} hidden>Custom (no scene matches)</option>` +
-        Object.keys(zone.scenes)
-          .map((name) => `<option value="${escapeHtml(name)}" ${name === activeName ? "selected" : ""}>${escapeHtml(name)}</option>`)
-          .join("");
-    }
+    $("#scene-select-label").textContent = activeName || "Custom (no scene matches)";
+    $("#scene-select-swatch").style.background = activeName
+      ? sceneSwatchBackground(zone.scenes[activeName].actions)
+      : "var(--bg-elev-2)";
+
+    const sheetList = $("#scene-sheet-list");
+    sheetList.innerHTML = Object.entries(zone.scenes)
+      .map(([name, scene]) => `
+        <div class="scene-sheet-row ${scene.active ? "active" : ""}" data-name="${escapeHtml(name)}" role="option">
+          <span class="scene-sheet-swatch" style="background:${sceneSwatchBackground(scene.actions)}"></span>
+          <span class="scene-sheet-name">${escapeHtml(name)}</span>
+          ${scene.active ? '<svg class="scene-sheet-check" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>' : ""}
+        </div>`)
+      .join("");
+    $$(".scene-sheet-row", sheetList).forEach((row) =>
+      row.addEventListener("click", async () => {
+        const name = row.dataset.name;
+        closeSceneSheet();
+        try {
+          await api(`/api/zones/${currentZone}/scenes/${encodeURIComponent(name)}/apply`, { method: "POST" });
+          toast(`${name} applied`);
+        } finally {
+          await loadState(true);
+        }
+      })
+    );
 
     const list = $("#controller-list");
     list.innerHTML = "";
@@ -459,15 +491,9 @@
     }
   });
 
-  $("#scene-select").addEventListener("change", async (e) => {
-    const name = e.target.value;
-    if (!currentZone || !name) return;
-    try {
-      await api(`/api/zones/${currentZone}/scenes/${encodeURIComponent(name)}/apply`, { method: "POST" });
-      toast(`${name} applied`);
-    } finally {
-      await loadState(true);
-    }
+  $("#scene-select-trigger").addEventListener("click", openSceneSheet);
+  $("#scene-sheet-overlay").addEventListener("click", (e) => {
+    if (e.target === $("#scene-sheet-overlay")) closeSceneSheet();
   });
 
   let dimmerDebounce = null;

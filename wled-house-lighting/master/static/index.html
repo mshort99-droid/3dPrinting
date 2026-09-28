@@ -21,8 +21,19 @@
         <input type="range" id="master-dimmer" class="dimmer-slider" min="1" max="100" value="100">
       </div>
 
-      <select id="scene-select" class="scene-select"></select>
+      <button type="button" class="scene-select-trigger" id="scene-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+        <span class="scene-select-swatch" id="scene-select-swatch"></span>
+        <span class="scene-select-label" id="scene-select-label">Select scene&hellip;</span>
+        <svg class="chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+      </button>
     </header>
+
+    <div class="scene-sheet-overlay hidden" id="scene-sheet-overlay">
+      <div class="scene-sheet" id="scene-sheet" role="listbox">
+        <div class="scene-sheet-handle"></div>
+        <div id="scene-sheet-list"></div>
+      </div>
+    </div>
 
     <main id="view-dashboard" class="view">
       <section class="section">
