@@ -21,7 +21,9 @@ class SceneAction:
     preset: int | None = None
     on: bool | None = None
     col: list[int] | None = None  # [r, g, b]
-    fx: int | None = None
+    fx: int | None = None  # WLED effect id (0 = Solid)
+    sx: int | None = None  # effect speed, 0-255
+    pal: int | None = None  # palette id
     bri: int | None = None
 
     def __post_init__(self) -> None:
@@ -44,6 +46,10 @@ class SceneAction:
             d["col"] = self.col
         if self.fx is not None:
             d["fx"] = self.fx
+        if self.sx is not None:
+            d["sx"] = self.sx
+        if self.pal is not None:
+            d["pal"] = self.pal
         if self.bri is not None:
             d["bri"] = self.bri
         return d
@@ -75,6 +81,8 @@ def parse_action(raw: dict) -> SceneAction:
         on=raw.get("power"),
         col=raw.get("col"),
         fx=raw.get("fx"),
+        sx=raw.get("sx"),
+        pal=raw.get("pal"),
         bri=raw.get("bri"),
     )
 

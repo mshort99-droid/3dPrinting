@@ -12,7 +12,7 @@ _yaml.width = 100
 
 def _clean_action(action: dict) -> dict:
     """Drop unset fields so saved YAML stays readable (no `col: null` etc)."""
-    keys = ("controller", "segment", "preset", "power", "col", "fx", "bri")
+    keys = ("controller", "segment", "preset", "power", "col", "fx", "sx", "pal", "bri")
     return {k: action[k] for k in keys if action.get(k) is not None}
 
 

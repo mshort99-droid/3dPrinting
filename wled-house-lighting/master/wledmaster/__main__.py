@@ -30,6 +30,7 @@ async def main() -> None:
     config = load_config(args.config)
     manager = Manager(config, args.config)
     await manager.start_clients()
+    asyncio.create_task(manager.load_effects_and_palettes())
 
     loop = asyncio.get_running_loop()
     stop_event = asyncio.Event()

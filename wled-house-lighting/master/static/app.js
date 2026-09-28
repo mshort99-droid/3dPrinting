@@ -8,6 +8,8 @@
   let previewDebounce = null;
   let lastStateJSON = null;
   let stateFetchInFlight = false;
+  let effectsList = [];
+  let palettesList = [];
 
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -256,7 +258,14 @@
         segments: {},
       };
       for (const sname of Object.keys(c.segments)) {
-        draft.controllers[cname].segments[sname] = { included: false, power: true, col: [255, 180, 80] };
+        draft.controllers[cname].segments[sname] = {
+          included: false,
+          power: true,
+          col: [255, 180, 80],
+          fx: 0,
+          sx: 128,
+          pal: 0,
+        };
       }
     }
     if (sceneName) {
@@ -271,6 +280,9 @@
             included: true,
             power: action.power !== false,
             col: action.col || [255, 180, 80],
+            fx: action.fx || 0,
+            sx: action.sx != null ? action.sx : 128,
+            pal: action.pal || 0,
           };
         }
       }
@@ -288,11 +300,31 @@
       for (const [sname, sd] of Object.entries(cd.segments)) {
         if (!sd.included) continue;
         const action = { controller: cname, segment: sname, power: sd.power };
-        if (sd.power) action.col = sd.col;
+        if (sd.power) {
+          action.col = sd.col;
+          action.fx = sd.fx || 0;
+          if (sd.fx) {
+            action.sx = sd.sx;
+            action.pal = sd.pal;
+          }
+        }
         actions.push(action);
       }
     }
     return actions;
+  }
+
+  function effectOptions(selectedFx) {
+    const list = effectsList.length ? effectsList : ["Solid"];
+    return list
+      .map((name, id) => `<option value="${id}" ${id === selectedFx ? "selected" : ""}>${escapeHtml(name)}</option>`)
+      .join("");
+  }
+  function paletteOptions(selectedPal) {
+    const list = palettesList.length ? palettesList : ["Default"];
+    return list
+      .map((name, id) => `<option value="${id}" ${id === selectedPal ? "selected" : ""}>${escapeHtml(name)}</option>`)
+      .join("");
   }
 
   function openSceneEditor(sceneName) {
@@ -327,7 +359,19 @@
                       <input type="checkbox" class="seg-power" ${sd.power ? "checked" : ""}>
                       <span class="switch-track"></span>
                     </label>
-                  </div>`
+                  </div>
+                  <select class="effect-select seg-fx">${effectOptions(sd.fx)}</select>
+                  ${
+                    sd.fx
+                      ? `<div class="effect-detail-row">
+                          <select class="palette-select seg-pal">${paletteOptions(sd.pal)}</select>
+                          <div class="speed-control">
+                            <span class="speed-label">Speed</span>
+                            <input type="range" min="0" max="255" class="speed-slider seg-sx" value="${sd.sx}">
+                          </div>
+                        </div>`
+                      : ""
+                  }`
                 : ""
             }
           </div>`;
@@ -379,6 +423,31 @@
         const seg = e.target.closest(".se-segment");
         const cd = editorDraft.controllers[seg.dataset.controller].segments[seg.dataset.segment];
         cd.col = hexToRgb(e.target.value);
+        schedulePreview();
+      })
+    );
+    $$(".seg-fx", root).forEach((sel) =>
+      sel.addEventListener("change", (e) => {
+        const seg = e.target.closest(".se-segment");
+        const cd = editorDraft.controllers[seg.dataset.controller].segments[seg.dataset.segment];
+        cd.fx = Number(e.target.value);
+        renderSceneEditor(); // effect chosen/cleared changes whether speed+palette show
+        schedulePreview();
+      })
+    );
+    $$(".seg-pal", root).forEach((sel) =>
+      sel.addEventListener("change", (e) => {
+        const seg = e.target.closest(".se-segment");
+        const cd = editorDraft.controllers[seg.dataset.controller].segments[seg.dataset.segment];
+        cd.pal = Number(e.target.value);
+        schedulePreview();
+      })
+    );
+    $$(".seg-sx", root).forEach((inp) =>
+      inp.addEventListener("input", (e) => {
+        const seg = e.target.closest(".se-segment");
+        const cd = editorDraft.controllers[seg.dataset.controller].segments[seg.dataset.segment];
+        cd.sx = Number(e.target.value);
         schedulePreview();
       })
     );
@@ -508,6 +577,13 @@
       }).catch(() => {});
     }, 120);
   });
+
+  api("/api/effects")
+    .then((data) => {
+      effectsList = data.effects || [];
+      palettesList = data.palettes || [];
+    })
+    .catch(() => {});
 
   loadState();
   pollTimer = setInterval(loadState, 4000);

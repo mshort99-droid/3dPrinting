@@ -17,6 +17,9 @@ def create_app(manager: Manager) -> web.Application:
     async def get_state(request: web.Request) -> web.Response:
         return web.json_response(manager.dashboard_state())
 
+    async def get_effects(request: web.Request) -> web.Response:
+        return web.json_response(manager.effects_meta())
+
     async def apply_scene(request: web.Request) -> web.Response:
         zone = request.match_info["zone"]
         scene = request.match_info["scene"]
@@ -65,6 +68,7 @@ def create_app(manager: Manager) -> web.Application:
 
     app.router.add_get("/", index)
     app.router.add_get("/api/state", get_state)
+    app.router.add_get("/api/effects", get_effects)
     app.router.add_post("/api/zones/{zone}/preview", preview)
     app.router.add_post("/api/zones/{zone}/toggle-power", toggle_power)
     app.router.add_post("/api/zones/{zone}/brightness", set_brightness)

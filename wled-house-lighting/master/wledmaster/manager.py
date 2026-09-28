@@ -5,6 +5,8 @@ import json
 import logging
 from pathlib import Path
 
+import aiohttp
+
 from . import persist
 from .config import Config, SceneAction, Zone, load_config, parse_action, validate_action
 from .wled_client import WledClient
@@ -22,10 +24,33 @@ class Manager:
             controller.name: WledClient(controller) for controller in config.all_controllers()
         }
         self._tasks: list[asyncio.Task] = []
+        self.effects: list[str] = []
+        self.palettes: list[str] = []
 
     async def start_clients(self) -> None:
         for client in self.clients.values():
             self._tasks.append(asyncio.create_task(client.run()))
+
+    async def load_effects_and_palettes(self) -> None:
+        """WLED's built-in effect/palette names, fetched once from whichever
+        controller answers first (they all run the same firmware version).
+        Best-effort: the scene editor just won't offer effects by name if
+        this fails, everything else still works."""
+        for controller in self.config.all_controllers():
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(f"http://{controller.host}/json/eff", timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                        self.effects = await resp.json()
+                    async with session.get(f"http://{controller.host}/json/pal", timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                        self.palettes = await resp.json()
+                logger.info(
+                    "loaded %d effects and %d palettes from %s",
+                    len(self.effects), len(self.palettes), controller.name,
+                )
+                return
+            except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
+                logger.warning("couldn't fetch effects/palettes from %s: %s", controller.name, exc)
+        logger.warning("no controller answered for effects/palettes; scene editor will skip effect names")
 
     async def stop_clients(self) -> None:
         for client in self.clients.values():
@@ -123,6 +148,10 @@ class Manager:
                 seg["col"] = [action.col]
             if action.fx is not None:
                 seg["fx"] = action.fx
+            if action.sx is not None:
+                seg["sx"] = action.sx
+            if action.pal is not None:
+                seg["pal"] = action.pal
             if action.bri is not None:
                 seg["bri"] = action.bri
             segments.append(seg)
@@ -174,6 +203,9 @@ class Manager:
         controllers/segments still require a service restart to take effect."""
         self.config = load_config(self.config_path)
 
+    def effects_meta(self) -> dict:
+        return {"effects": self.effects, "palettes": self.palettes}
+
     # -- status for the web UI -----------------------------------------------
 
     def status(self) -> dict:
@@ -205,6 +237,9 @@ class Manager:
                         "id": seg_id,
                         "on": live.get("on"),
                         "col": col[0] if col else [0, 0, 0],
+                        "fx": live.get("fx", 0),
+                        "sx": live.get("sx", 128),
+                        "pal": live.get("pal", 0),
                     }
                 live_state = (client.last_state or {}).get("state", {})
                 controllers[cname] = {
@@ -250,6 +285,12 @@ class Manager:
                 live_col = (live_seg.get("col") or [[0, 0, 0]])[0]
                 if list(live_col) != list(action.col):
                     return False
+            if action.on and action.fx is not None and live_seg.get("fx") != action.fx:
+                return False
+            if action.on and action.sx is not None and live_seg.get("sx") != action.sx:
+                return False
+            if action.on and action.pal is not None and live_seg.get("pal") != action.pal:
+                return False
         return True
 
     async def serve_control_socket(self, socket_path: str) -> None:
