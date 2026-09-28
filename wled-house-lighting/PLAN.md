@@ -251,10 +251,21 @@ Two different difficulty levels depending on what "create" means:
       typed in plaintext in chat while setting this up; new password was
       generated locally, set via `chpasswd`, verified by SSH login, and
       given to Michael once outside this file (not recorded here).
-- [ ] Router: DHCP reservation (fixed IP) for the Pi and every WLED
-      controller. **Not done by Claude** — router/network config changes are
-      done by Michael directly. Pi's current DHCP-assigned IP is
-      **192.168.4.40**, MAC `e4:5f:01:ab:a4:4b` — reserve that pairing.
+- [ ] **Router: DHCP reservation (fixed IP) for the Pi and every WLED
+      controller — confirmed to actually bite, not just theoretical.**
+      On 2026-09-28 all 3 Bar controllers went unreachable for hours;
+      DHCP had reassigned their IPs to other devices on the network
+      (only the Pi's own IP had a reservation). Found them again by MAC
+      address and updated `house.yaml`, but this will keep happening
+      until each of these gets a router reservation. **Not done by
+      Claude** — router/network config changes are done by Michael
+      directly.
+      | Controller | MAC | Current IP (as of 2026-09-28) |
+      |---|---|---|
+      | Pi (`lights-hub`) | `e4:5f:01:ab:a4:4b` | 192.168.4.40 |
+      | `under_bar` | `3c:8a:1f:04:91:68` | 192.168.4.24 |
+      | `bar_shelves` | `cc:db:a7:52:21:dc` | 192.168.4.38 |
+      | `bar_shelves_2` | `94:51:dc:16:56:70` | 192.168.4.39 |
 - [ ] Clean dust from the fan (moot for now — running off the old SD card's
       fan/heatsink setup, but still worth doing before final mounting).
 - [x] Run health checks — see results below.
