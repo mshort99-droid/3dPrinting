@@ -98,6 +98,13 @@
     $("#zone-title").textContent = currentZone[0].toUpperCase() + currentZone.slice(1);
     const zone = state[currentZone];
 
+    const activeName = Object.entries(zone.scenes).find(([, s]) => s.active)?.[0];
+    const nowPlaying = $("#now-playing");
+    nowPlaying.classList.toggle("custom", !activeName);
+    nowPlaying.innerHTML = activeName
+      ? `<span class="dot"></span>${escapeHtml(activeName)}`
+      : `<span class="dot"></span>Custom (no scene matches)`;
+
     const grid = $("#scene-grid");
     grid.innerHTML = "";
     for (const [name, scene] of Object.entries(zone.scenes)) {

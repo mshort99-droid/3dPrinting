@@ -61,6 +61,29 @@ button, [role="button"], .segment-chip, .editor-row, .scene-card {
   margin: 0;
 }
 
+.now-playing {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.now-playing .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.18);
+  flex-shrink: 0;
+}
+.now-playing.custom .dot {
+  background: var(--text-faint);
+  box-shadow: none;
+}
+.now-playing.custom { color: var(--text-faint); font-style: italic; }
+
 .conn-dot {
   width: 10px;
   height: 10px;
