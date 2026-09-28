@@ -537,6 +537,12 @@ button, [role="button"], .segment-chip, .editor-row {
   margin-left: 4px;
 }
 
+.toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .switch {
   position: relative;
   width: 44px;

@@ -457,11 +457,13 @@
           <button type="button" class="edit-pane-clear">Clear selection</button>
         </div>
         <div class="color-row">
-          <span class="power-label">In scene</span>
-          <label class="switch" style="margin-left:auto">
-            <input type="checkbox" class="pane-included" ${editPane.included ? "checked" : ""}>
-            <span class="switch-track"></span>
-          </label>
+          <div class="toggle-group" style="margin-left:auto">
+            <span class="power-label">In scene</span>
+            <label class="switch">
+              <input type="checkbox" class="pane-included" ${editPane.included ? "checked" : ""}>
+              <span class="switch-track"></span>
+            </label>
+          </div>
         </div>
         <div class="color-row">
           <div class="color-slots">
@@ -478,11 +480,13 @@
               <span class="color-slot-label">3</span>
             </div>
           </div>
-          <span class="power-label">Power</span>
-          <label class="switch" style="margin-left:auto">
-            <input type="checkbox" class="pane-power" ${editPane.power ? "checked" : ""}>
-            <span class="switch-track"></span>
-          </label>
+          <div class="toggle-group" style="margin-left:auto">
+            <span class="power-label">Power</span>
+            <label class="switch">
+              <input type="checkbox" class="pane-power" ${editPane.power ? "checked" : ""}>
+              <span class="switch-track"></span>
+            </label>
+          </div>
         </div>
         ${
           editPane.power
