@@ -1,6 +1,6 @@
 # Whole-House WLED Control System — Plan
 
-Status: **building** — master skeleton running on the Pi. Last updated 2026-09-27.
+Status: **building** — master skeleton running on the Pi. Last updated 2026-09-28.
 
 ## Goal
 
@@ -14,6 +14,7 @@ Assistant), with a web interface and Alexa control added later.
 |---|---|
 | Home Assistant | Not used; system is standalone |
 | Lights | Several existing ESP32-based WLED controllers |
+| Non-WLED lights | Also control existing **Tuya-based Wi-Fi devices** (Geeni devices + ELEGRP DTR10 smart dimmer switches) from the same master, locally via TinyTuya — see [Non-WLED devices](#non-wled-devices-geeni--elegrp-tuya) |
 | Architecture | Hub and spoke: one **master** talks to all WLED controllers; panels talk only to the master |
 | Master hardware | Existing **Raspberry Pi 4 Model B** (board made late 2021), in the network room, wired Ethernet, no screen |
 | Master case | Keep the existing official Pi case (red/white, fan + heatsinks fitted) |
@@ -474,6 +475,9 @@ than an SSD, so consider swapping to a real USB SSD before this becomes a
 
 ## Bar zone — WLED controller segment maps
 
+IPs below are the current reserved ones (updated 2026-09-28 after the DHCP
+reassignment; see the table in the Pi prep checklist).
+
 Found by lighting ranges of pixels live and having Michael confirm what lit up
 on the physical shelves (2026-09-27). Segment names/IDs are set directly on
 each controller in WLED, independent of `wledmaster`.
@@ -482,7 +486,7 @@ Naming convention (consistent across both shelf units, fixed 2026-09-27 after
 initially mislabeling top/bottom on the right unit): **`shelf<unit><position>`,
 position 1 = bottom shelf counting up to the top.**
 
-**Bar Shelves** (192.168.4.49, left unit, 977 LEDs) — already correctly
+**Bar Shelves** (`bar_shelves`, 192.168.4.38, left unit, 977 LEDs) — already correctly
 segmented from before; verified shelf-by-shelf, then renamed from its
 original `bottom1`/`shelf11`/`shelf12`/`shelf13` to match the convention
 above:
@@ -493,7 +497,7 @@ above:
 | `shelf13` | 484–728 | 3rd from bottom |
 | `shelf14` | 729–976 | top shelf |
 
-**Bar Shelves 2** (192.168.6.240, right unit) — was one undivided segment,
+**Bar Shelves 2** (`bar_shelves_2`, 192.168.4.39, right unit) — was one undivided segment,
 now split into 4 and named. Also found and fixed a real misconfiguration:
 the controller was set to 800 LEDs but the physical strip is only **788**
 (the extra 12 were phantom pixels driving nothing); `hw.led.ins[0].len` is
@@ -505,7 +509,7 @@ now corrected to 788 and the device rebooted to apply it.
 | `shelf23` | 378–579 | 3rd from bottom |
 | `shelf24` | 580–787 | top shelf |
 
-**Under Bar** (192.168.4.42, 60 LEDs) — split into 4 even 15-pixel segments
+**Under Bar** (`under_bar`, 192.168.4.24, 60 LEDs) — split into 4 even 15-pixel segments
 (no physical shelf boundaries to find, just an even split): `underbar1`
 (0–14), `underbar2` (15–29), `underbar3` (30–44), `underbar4` (45–59).
 
@@ -534,6 +538,65 @@ segments (currently the config only knows about whole-controller presets,
 not individual WLED segments within a controller) — needed before scenes can
 address a single shelf rather than a whole unit.
 
+## Non-WLED devices (Geeni + ELEGRP, Tuya)
+
+Added 2026-09-28. Not built yet — design notes only.
+
+The bar also has Wi-Fi lights that aren't WLED, and they should be part of the
+same scenes/panels/web UI/Alexa:
+- **Geeni** devices (Merkury's brand, built on the **Tuya** platform) —
+  controlled today from the Geeni app.
+- **ELEGRP DTR10** Wi-Fi smart dimmer switches (single-pole, touch dimmer,
+  neutral required; bought a 4-pack, Dec 2024) with lights attached —
+  controlled today from the ELEGRP app. Likely also Tuya-based; to confirm.
+
+**Approach: local control from the Pi with [TinyTuya](https://github.com/jasonacox/tinytuya)**
+(Python, fits `wledmaster`). No cloud at runtime; keeps working if the
+internet is down.
+- One-time setup needs each device's **ID + local key**:
+  1. Get the devices into the **Smart Life** app (Tuya's own app). Geeni /
+     ELEGRP devices may need re-pairing to move there (a Tuya device can
+     only be bound to one app account at a time). Alexa links would then go
+     through Smart Life instead of Geeni/ELEGRP (or through the master's own
+     Alexa support later).
+  2. Create a free Tuya IoT developer account and link the Smart Life
+     account to a cloud project.
+  3. Run `python -m tinytuya wizard` on the Pi — pulls IDs + local keys for
+     every device at once; `tinytuya scan` finds their LAN IPs/protocol
+     versions.
+- Re-pairing/resetting a device later **changes its local key** — re-run the
+  wizard if a Tuya device suddenly stops responding.
+- Give every Tuya device a **DHCP reservation** too (same lesson as the WLED
+  controllers on 2026-09-28).
+- Many Tuya devices allow only **1–2 local connections**, so only the master
+  should talk to them (already the hub design).
+- **No fallback path for these:** if the master is down, zone panels can still
+  drive WLED directly, but Tuya devices wait for the master. The ELEGRP
+  dimmers keep working as normal wall switches regardless, so staff always
+  have manual control.
+
+**What the master would control:**
+- ELEGRP dimmers: on/off + brightness; changes made at the wall switch are
+  reported back, so the UI/panels stay in sync.
+- Geeni devices: depends on type — bulbs (on/off, brightness, colour, white
+  temperature), plugs/switches (on/off), strips (colour/brightness/modes).
+
+**Code impact (small, not a redesign):** `wledmaster` is currently
+WLED-specific (`wled_client.py`, `Controller`, `SceneAction`,
+`_build_command`). Add a device-type layer: a `type:` on each device in
+`house.yaml` (`wled` default, `tuya` new), a Tuya client alongside the WLED
+one (persistent TinyTuya connection per device, status push → state), and
+Tuya-appropriate scene actions (`power`, `bri`, and for colour bulbs
+`col`/colour temp). Zones and scenes stay brand-agnostic, so a Bar scene can
+set WLED shelves *and* the ELEGRP dimmers in one tap. Leaves room for other
+brands later (Shelly, Kasa, ...).
+
+**Risks to check early:** newer Tuya firmware uses protocol 3.4/3.5 (TinyTuya
+supports them, but test one Geeni device and one ELEGRP dimmer before
+building the full integration). Devices that won't cooperate can sometimes
+be reflashed with open firmware (OpenBeken/ESPHome) — more hands-on; only for
+problem devices.
+
 ## Open questions
 
 - Which rooms/zones, and how many WLED controllers in each?
@@ -541,7 +604,11 @@ address a single shelf rather than a whole unit.
 - Is the network room on the same subnet/VLAN as the Wi-Fi devices? (mDNS and
   Alexa discovery need it, or an mDNS reflector.)
 - Final panel choices: 7" board model; knob size (2.1" vs 1.46").
-- Pi RAM size (any is fine; check with `free -h`).
+- Is the **ELEGRP app** Tuya-based? (Check a device's info page in the app for
+  a "Virtual ID" — Tuya white-label apps show one — or try adding a dimmer
+  in Smart Life.)
+- Which Geeni devices are in the bar (bulbs / strips / plugs / switches), how
+  many, and how many ELEGRP dimmers are installed and what they control?
 
 ## Notes / constraints
 
