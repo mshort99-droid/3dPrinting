@@ -168,6 +168,28 @@ Assistant), with a web interface and Alexa control added later.
      Each included segment in the scene editor now has an Effect dropdown;
      picking anything but Solid reveals Palette + Speed controls, all
      live-previewing like color/power already did.
+   - Removed the scene editor's "Preview" button — vestigial once every
+     control started live-previewing on its own; clicking it just resent
+     the same state the UI had already pushed.
+
+   **Scene editor bulk-edit redesign (2026-09-28):** editing a 12-segment
+   scene one row at a time was tedious, especially for scenes where most
+   segments share the same look. Replaced the per-segment inline color/fx
+   controls with: a checkbox on each segment row (checked = included in the
+   scene, same meaning as the old "Add to scene" chip), a "Select all" per
+   controller, and a single shared edit panel that appears above the list
+   whenever 1+ segments are checked *and tapped* (tapping a checked row's
+   body toggles whether it's currently targeted by the panel, independent
+   of inclusion — this distinction matters: opening an existing multi-color
+   scene like Christmas has all segments checked/included, and the panel
+   must not overwrite the untouched ones just because they're included).
+   Panel edits (color/power/fx/pal/speed) write to every targeted segment
+   and live-preview together, same debounce as before. Verified against
+   real Bar hardware: bulk-recolored 2 of 4 `under_bar` segments via the
+   panel, confirmed via the WLED device's own `/json/state` that only those
+   2 changed and the other 2 kept their original color, then restored the
+   zone to Warm White. Implementation in `renderSceneEditor()` /
+   `applyPaneToSelection()` in `app.js`.
 
    **Important gotcha found 2026-09-27 (real, hit live in production more
    than once): never use `preset:` scene actions on a controller that has
@@ -251,6 +273,23 @@ Two different difficulty levels depending on what "create" means:
       typed in plaintext in chat while setting this up; new password was
       generated locally, set via `chpasswd`, verified by SSH login, and
       given to Michael once outside this file (not recorded here).
+- [x] **SSH key-based deploy access set up (2026-09-28)**, after a full
+      lockout: the 2026-09-27 password wasn't saved anywhere and no key
+      existed, so a new Claude Code session had neither. Recovered without
+      reflashing by pulling the USB boot drive into the Mac and using the
+      standard Pi "forgotten password" trick — appended
+      `init=/bin/sh -c "mount -t proc proc /proc; mount -o remount,rw /;
+      echo 'lights:<newpass>' | chpasswd; sync; exec /bin/sh"` to
+      `bootfs/cmdline.txt` (the kernel cmdline parser honors the quotes, so
+      this runs non-interactively — no monitor/keyboard needed on the Pi),
+      booted once to apply it, then restored the original `cmdline.txt` and
+      rebooted normally. A dedicated ed25519 key
+      (`~/.ssh/lights_pi` on the Mac, alias `lights-hub` in `~/.ssh/config`)
+      was then installed with `ssh-copy-id` so future sessions don't depend
+      on a password at all. Editing `cmdline.txt` to add `init=/bin/sh` was
+      blocked by Claude Code's own auto-mode safety classifier (correctly —
+      it's an auth-bypass technique) even though this is the user's own
+      hardware; Michael made that edit himself in TextEdit both times.
 - [x] **Router: DHCP reservation (fixed IP) for the Pi and every WLED
       controller.** Confirmed to actually bite, not just theoretical: on
       2026-09-28 all 3 Bar controllers went unreachable for hours because
