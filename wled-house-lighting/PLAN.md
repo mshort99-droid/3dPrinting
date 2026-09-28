@@ -173,23 +173,37 @@ Assistant), with a web interface and Alexa control added later.
      the same state the UI had already pushed.
 
    **Scene editor bulk-edit redesign (2026-09-28):** editing a 12-segment
-   scene one row at a time was tedious, especially for scenes where most
-   segments share the same look. Replaced the per-segment inline color/fx
-   controls with: a checkbox on each segment row (checked = included in the
-   scene, same meaning as the old "Add to scene" chip), a "Select all" per
-   controller, and a single shared edit panel that appears above the list
-   whenever 1+ segments are checked *and tapped* (tapping a checked row's
-   body toggles whether it's currently targeted by the panel, independent
-   of inclusion — this distinction matters: opening an existing multi-color
-   scene like Christmas has all segments checked/included, and the panel
-   must not overwrite the untouched ones just because they're included).
-   Panel edits (color/power/fx/pal/speed) write to every targeted segment
-   and live-preview together, same debounce as before. Verified against
-   real Bar hardware: bulk-recolored 2 of 4 `under_bar` segments via the
-   panel, confirmed via the WLED device's own `/json/state` that only those
-   2 changed and the other 2 kept their original color, then restored the
-   zone to Warm White. Implementation in `renderSceneEditor()` /
-   `applyPaneToSelection()` in `app.js`.
+   scene one row at a time was tedious, especially for scenes where several
+   segments share the same look or effect. Replaced the per-segment inline
+   color/fx controls with a checkbox on each segment row plus one shared
+   edit panel above the list. The checkbox means *only* "currently targeted
+   by the panel" — it's deliberately independent of whether the segment is
+   already in the scene, and spans every controller in the zone, so you can
+   select any mix of segments (in-scene or not, on any controller) and edit
+   them as one batch. Scene membership itself became a field the panel
+   controls ("In scene" toggle, alongside Power/Color/Effect/Palette/Speed)
+   rather than the checkbox's job — this is what lets a scene keep
+   different effects on different segments (e.g. some segments Rainbow,
+   others Solid) while still bulk-editing whichever subset shares a look
+   at a given moment. To avoid a footgun, the "In scene" toggle only ever
+   gets pulled *up* to true automatically (selecting a fresh, not-yet-
+   included segment keeps the panel's current "In scene" state rather than
+   defaulting it off) — turning it off is always an explicit user action,
+   normally used to bulk-remove several selected segments from the scene
+   at once. "Select all" per controller seeds the panel from that
+   controller's segments regardless of current inclusion. Panel edits
+   live-preview together with the same debounce as before. Verified
+   against real Bar hardware: selected `underbar1` (on `under_bar`) and
+   `shelf12` (on `bar_shelves` — a different controller) as one batch
+   despite neither being in the test scene yet, set them to red Rainbow,
+   confirmed via each WLED device's own `/json/state` that exactly those
+   two segments changed (fx=9, col red) and every sibling segment on both
+   controllers was untouched, then restored both controllers to Warm
+   White (and explicitly cleared the leftover effect afterward — applying
+   a scene whose actions don't mention `fx` doesn't reset a segment's
+   currently-running effect, a pre-existing behavior worth knowing about).
+   Implementation in `renderSceneEditor()` / `applyPaneToSelection()` /
+   `seedEditPaneFrom()` in `app.js`.
 
    **Important gotcha found 2026-09-27 (real, hit live in production more
    than once): never use `preset:` scene actions on a controller that has

@@ -332,7 +332,7 @@
   function openSceneEditor(sceneName) {
     editorDraft = buildDraft(sceneName);
     editPaneSelection = new Set();
-    editPane = { power: true, col: [255, 180, 80], fx: 0, sx: 128, pal: 0 };
+    editPane = { included: true, power: true, col: [255, 180, 80], fx: 0, sx: 128, pal: 0 };
     renderSceneEditor();
     switchView("scene-editor");
   }
@@ -341,8 +341,17 @@
     return `${cname}::${sname}`;
   }
 
+  // Selection ("checked, targeted by the edit panel") is deliberately independent
+  // of a segment's `included` (in-scene) state, and spans every controller — you
+  // can select any mix of segments, in or out of the scene, across all of them,
+  // and the panel edits them as one batch.
   function seedEditPaneFrom(sd) {
-    editPane = { power: sd.power, col: sd.col.slice(), fx: sd.fx, sx: sd.sx, pal: sd.pal };
+    // Only pulls "in scene" UP to true (an already-included segment always shows
+    // true); never pulls it down to false just because a freshly-selected segment
+    // happens not to be included yet, or the panel would default to excluding
+    // anything new the moment you select it. Turning it off is always explicit.
+    const stillIncluded = sd.included ? true : editPane.included;
+    editPane = { included: stillIncluded, power: sd.power, col: sd.col.slice(), fx: sd.fx, sx: sd.sx, pal: sd.pal };
   }
 
   function addToPaneSelection(cname, sname) {
@@ -370,6 +379,7 @@
     for (const [cname, cd] of Object.entries(editorDraft.controllers)) {
       for (const [sname, sd] of Object.entries(cd.segments)) {
         if (!editPaneSelection.has(segKey(cname, sname))) continue;
+        sd.included = editPane.included;
         sd.power = editPane.power;
         sd.col = editPane.col.slice();
         sd.fx = editPane.fx;
@@ -391,7 +401,7 @@
           const key = segKey(cname, sname);
           const targeted = editPaneSelection.has(key);
           const fxLabel = !sd.included
-            ? "—"
+            ? "Not in scene"
             : !sd.power
             ? "Off"
             : sd.fx
@@ -400,13 +410,13 @@
           return `
           <div class="se-segment ${sd.included ? "included" : ""} ${targeted ? "targeted" : ""}" data-controller="${cname}" data-segment="${sname}">
             <label class="seg-check-wrap">
-              <input type="checkbox" class="seg-check" ${sd.included ? "checked" : ""}>
+              <input type="checkbox" class="seg-check" ${targeted ? "checked" : ""}>
             </label>
-            <button type="button" class="seg-row-body" ${sd.included ? "" : "disabled"}>
+            <div class="seg-row-body">
               <span class="seg-swatch" style="background:${sd.included ? rgbToHex(sd.col) : "transparent"}; opacity:${sd.included && sd.power ? 1 : 0.3}"></span>
               <span class="se-segment-name">${escapeHtml(sname)}</span>
               <span class="seg-fx-label">${fxLabel}</span>
-            </button>
+            </div>
           </div>`;
         })
         .join("");
@@ -428,6 +438,13 @@
         <div class="edit-pane-head">
           <span>Editing ${editPaneSelection.size} segment${editPaneSelection.size === 1 ? "" : "s"}</span>
           <button type="button" class="edit-pane-clear">Clear selection</button>
+        </div>
+        <div class="color-row">
+          <span class="power-label">In scene</span>
+          <label class="switch" style="margin-left:auto">
+            <input type="checkbox" class="pane-included" ${editPane.included ? "checked" : ""}>
+            <span class="switch-track"></span>
+          </label>
         </div>
         <div class="color-row">
           <input type="color" class="color-swatch-input pane-color" value="${rgbToHex(editPane.col)}">
@@ -454,7 +471,7 @@
             : ""
         }
       </div>`
-        : `<div class="edit-pane edit-pane-empty">Check segments below to edit their look — check several to edit them together.</div>`;
+        : `<div class="edit-pane edit-pane-empty">Check segments below — any mix, any controller, in or out of the scene — to edit them together.</div>`;
 
     root.innerHTML = `
       <div class="editor-header">
@@ -476,48 +493,43 @@
       cb.addEventListener("change", (e) => {
         const seg = e.target.closest(".se-segment");
         const { controller: cname, segment: sname } = seg.dataset;
-        const sd = editorDraft.controllers[cname].segments[sname];
-        sd.included = e.target.checked;
-        if (sd.included) {
+        const key = segKey(cname, sname);
+        if (e.target.checked) {
           addToPaneSelection(cname, sname);
         } else {
-          editPaneSelection.delete(segKey(cname, sname));
+          editPaneSelection.delete(key);
           reseedPaneIfSingle();
         }
         renderSceneEditor();
-        schedulePreview();
       })
     );
 
-    $$(".seg-row-body", root).forEach((btn) =>
-      btn.addEventListener("click", (e) => {
+    $$(".seg-row-body", root).forEach((el) =>
+      el.addEventListener("click", (e) => {
         const seg = e.target.closest(".se-segment");
-        const { controller: cname, segment: sname } = seg.dataset;
-        const sd = editorDraft.controllers[cname].segments[sname];
-        if (!sd.included) return;
-        const key = segKey(cname, sname);
-        if (editPaneSelection.has(key)) {
-          editPaneSelection.delete(key);
-          reseedPaneIfSingle();
-        } else {
-          addToPaneSelection(cname, sname);
-        }
-        renderSceneEditor();
+        $(".seg-check", seg).click();
       })
     );
 
     $$(".ctrl-select-all", root).forEach((btn) =>
       btn.addEventListener("click", (e) => {
         const cname = e.target.dataset.controller;
-        for (const [sname, sd] of Object.entries(editorDraft.controllers[cname].segments)) {
-          sd.included = true;
+        for (const sname of Object.keys(editorDraft.controllers[cname].segments)) {
           addToPaneSelection(cname, sname);
         }
         renderSceneEditor();
-        schedulePreview();
       })
     );
 
+    const paneIncluded = $(".pane-included", root);
+    if (paneIncluded) {
+      paneIncluded.addEventListener("change", (e) => {
+        editPane.included = e.target.checked;
+        applyPaneToSelection();
+        renderSceneEditor();
+        schedulePreview();
+      });
+    }
     const paneColor = $(".pane-color", root);
     if (paneColor) {
       paneColor.addEventListener("input", (e) => {
