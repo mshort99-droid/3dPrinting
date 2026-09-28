@@ -134,6 +134,41 @@ Assistant), with a web interface and Alexa control added later.
      layout) — the master only sends runtime commands (preset select,
      segment on/off/color/fx/brightness), same as before.
 
+   **Redesign + effects (2026-09-27/28):** several rounds of UI feedback
+   after the initial build:
+   - Header restructured: title row, then power toggle + a real master
+     dimmer (brightness slider hitting all controllers), then a scene
+     picker. The dimmer uses a gamma-2 curve (`percentToBri`/`briToPercent`
+     in `app.js`) — a raw linear 1-255 slider crammed almost all visible
+     dimming into the bottom ~20% of its travel, since eyes perceive
+     brightness roughly logarithmically.
+   - The scene picker is a custom bottom sheet, not a native `<select>` —
+     iOS Safari (and browsers generally) won't style `<option>` elements
+     with custom colors, so there was no way to show each scene's color
+     preview the way the old button grid did. The sheet shows a real
+     swatch per scene (solid, or a conic-gradient pie for multi-color
+     scenes) and a checkmark on whichever is currently active.
+   - Added an all-off/on power toggle. Deliberately just flips each
+     controller's top-level WLED "on" switch rather than touching
+     segments — WLED keeps every segment's color/effect/on-state in
+     memory while powered off, so toggling back on restores the exact
+     prior look (including scenes with some segments individually off)
+     with no need to track "the last scene shown."
+   - Fixed the bottom Dashboard/Scenes tab bar not staying put on an
+     actual iPhone despite `position: fixed` looking correct and working
+     fine in (Chromium-based) local testing — moved it to be a direct
+     child of `<body>` instead of nested inside the app's flex wrapper,
+     which is the standard fix for this class of WebKit quirk. Couldn't
+     be reproduced/confirmed in local tooling, only on the real device.
+   - Added WLED effects: scene actions gained `fx`/`sx`/`pal` fields
+     end-to-end (config, persistence, command building, active-scene
+     matching). The master fetches the real effect/palette name lists
+     from a live controller once at startup (`GET /json/eff` / `/json/pal`,
+     ~220 effects / 72 palettes) so the editor shows names, not numbers.
+     Each included segment in the scene editor now has an Effect dropdown;
+     picking anything but Solid reveals Palette + Speed controls, all
+     live-previewing like color/power already did.
+
    **Important gotcha found 2026-09-27 (real, hit live in production more
    than once): never use `preset:` scene actions on a controller that has
    segments defined.** A WLED preset saved before a controller's segments
