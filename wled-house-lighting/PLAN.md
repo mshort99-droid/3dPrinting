@@ -252,6 +252,18 @@ Assistant), with a web interface and Alexa control added later.
      mention it). Deployed to the Pi; needed a `wled-master` service
      restart since Python changed this time, not just static files.
 
+   **Static asset cache-busting (2026-09-28):** a small UI tweak (moving
+   the In scene/Power switch labels) looked unchanged on a phone after
+   deploying — second time this exact "browser cached the old app.js"
+   confusion has happened on this project (first was the DHCP-outage day).
+   `index.html` linked `/static/app.js`/`style.css` with no version, so a
+   phone that had cached them kept using the stale copy indefinitely.
+   Fixed in `web.py`: the `/` route now reads `index.html`, rewrites both
+   asset URLs to `?v=<file mtime>` so a changed file gets a new URL
+   automatically, and serves the HTML itself with `Cache-Control: no-store`
+   so the browser always re-checks for those (possibly new) URLs. No more
+   manual hard-refresh needed after a deploy.
+
    **Important gotcha found 2026-09-27 (real, hit live in production more
    than once): never use `preset:` scene actions on a controller that has
    segments defined.** A WLED preset saved before a controller's segments
